@@ -9,6 +9,8 @@ public class Device {
     private Vector<InterFace> interfaces;
     //设备数量
     private int interfaceNum;
+    //与本系统关联的IP地址？？不知道这个“与本系统关联”是指？
+
 
     public SysInfo getSysinfo() {
         return sysinfo;

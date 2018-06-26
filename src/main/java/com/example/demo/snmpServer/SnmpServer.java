@@ -28,6 +28,67 @@ public class SnmpServer {
             e.printStackTrace();
         }
     }
+    public String[] walkInfo(int[] oid, boolean transflag){
+        try {
+            //this.setPDU(oid);
+            String[] s = this.walkPDU(oid, transflag);
+            return s;
+        } catch (IOException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    public String[] walkPDU(int[] oid, boolean transflag) throws IOException {
+        // get PDU
+        PDU pdu = new PDU();
+        pdu.add(new VariableBinding(new OID(oid)));
+        pdu.setType(PDU.GETBULK);
+        pdu.setMaxRepetitions(1000);
+
+        ResponseEvent respEvnt = sendPDU(pdu);
+        System.out.println(respEvnt.getResponse());
+        if (respEvnt != null && respEvnt.getResponse() != null) {
+            Vector<? extends VariableBinding> recVBs = respEvnt.getResponse()
+                    .getVariableBindings();
+            String[] v = new String[recVBs.size()];
+            for (int i = 0; i < recVBs.size(); i++) {
+                VariableBinding recVB = recVBs.elementAt(i);
+                //有些需要转换，但是有些不必转化比如mac地址
+                if(recVB.getSyntax() == 4 && transflag){
+                    v[i] = octetStr2Readable(recVB.getVariable().toString());
+                }
+                else {
+                    v[i] = recVB.getVariable().toString();
+                }
+            }
+            return v;
+        }
+        return null;
+
+    }
+
+    public Vector<? extends VariableBinding> walkVB(int[] oid, boolean transflag){
+        PDU pdu = new PDU();
+        pdu.add(new VariableBinding(new OID(oid)));
+        pdu.setType(PDU.GETBULK);
+        pdu.setMaxRepetitions(1000);
+        ResponseEvent respEvnt = null;
+        try {
+            respEvnt = sendPDU(pdu);
+        }catch(Exception e){
+            e.printStackTrace();
+        }
+        System.out.println(respEvnt.getResponse());
+        if (respEvnt != null && respEvnt.getResponse() != null) {
+            Vector<? extends VariableBinding> recVBs = respEvnt.getResponse()
+                    .getVariableBindings();
+            return recVBs;
+
+        }
+        return null;
+    }
+
     public String[] getInfo(int[] oid, boolean transflag) {
         try {
             //this.setPDU(oid);
@@ -49,7 +110,9 @@ public class SnmpServer {
         target.setRetries(2);
         // 超时时间
         target.setTimeout(1500);
-        target.setVersion(SnmpConstants.version1);
+        //终于知道问题的关键所在了  2c版本才增加了GETBULK..
+        //那么为什么之前在试2c时发现1可以2c却不可以呢？具体哪个例子我也忘了，浪费这么长时间哎
+        target.setVersion(SnmpConstants.version2c);
         // 向Agent发送PDU，并返回Response
         return snmp.send(pdu, target);
     }
@@ -114,6 +177,7 @@ public class SnmpServer {
         pdu.add(new VariableBinding(new OID(oid)));
         pdu.setType(PDU.GET);
         ResponseEvent respEvnt = sendPDU(pdu);
+        System.out.println(respEvnt.getResponse());
         if (respEvnt != null && respEvnt.getResponse() != null) {
             Vector<? extends VariableBinding> recVBs = respEvnt.getResponse()
                     .getVariableBindings();
