@@ -1,7 +1,10 @@
 package com.example.demo.snmpServer;
 
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.Vector;
+
+import com.sun.jmx.snmp.SnmpString;
 import org.snmp4j.CommunityTarget;
 import org.snmp4j.PDU;
 import org.snmp4j.Snmp;
@@ -28,7 +31,7 @@ public class SnmpServer {
     public String[] getInfo(int[] oid) {
         try {
             //this.setPDU(oid);
-            String[] s = this.getPDU();
+            String[] s = this.getPDU(oid);
             return s;
         } catch (IOException e) {
             e.printStackTrace();
@@ -61,39 +64,72 @@ public class SnmpServer {
         sendPDU(pdu);
     }
 
-
-
-    public String[] getPDU() throws IOException {
-        // get PDU
-        PDU pdu = new PDU();
-        pdu.add(new VariableBinding(new OID(new int[] { 1, 3, 6, 1, 2, 1, 1, 2, 0})));
-        pdu.setType(PDU.GETBULK);
-        return readResponse(sendPDU(pdu));
-
+    public static String octetStr2Readable(String s){
+        //byte[] trues = s.getBytes();
+        /*for(int j = 0 ; j < trues.length ; j++){
+            System.out.println(trues[j]);
+        }*/
+        System.out.println(s);
+        byte[] octets = new byte[0];
+        try {
+            octets = s.getBytes();
+        }catch(Exception e){
+            e.printStackTrace();
+        }
+        byte[] bytes = new byte[octets.length - (octets.length - 2) / 3];
+        int length = 0;
+        //System.out.println("---------------");
+        for(int j = 0 ; j < octets.length ; j++){
+            byte result = 0;
+            if(octets[j] >= '0' && octets[j] <= '9'){
+                result += (byte)(octets[j] - '0');
+            }
+            else if(octets[j] >= 'a' && octets[j] <= 'f'){
+                result += (byte)(octets[j] - 'a' + 10);
+            }
+            j++;
+            if(octets[j] >= '0' && octets[j] <= '9'){
+                result = (byte)(octets[j] - '0' + result * 16);
+            }
+            else if(octets[j] >= 'a' && octets[j] <= 'f'){
+                result = (byte)(octets[j] - 'a' + 10 + + result * 16);
+            }
+            j++;
+            bytes[length++] = result;
+        }
+        String news = new String();
+        try {
+            //TMD终于选对了字符集，早就该查windows采用的字符编码方式的，nice！
+            news = new String(bytes, "GB2312").trim();
+        }catch(Exception e){
+            e.printStackTrace();
+        }
+        return news;
     }
 
-
-
-    public String[] readResponse(ResponseEvent respEvnt) {
-        // 解析Response
+    public String[] getPDU(int[] oid) throws IOException {
+        // get PDU
+        PDU pdu = new PDU();
+        pdu.add(new VariableBinding(new OID(oid)));
+        pdu.setType(PDU.GET);
+        ResponseEvent respEvnt = sendPDU(pdu);
         if (respEvnt != null && respEvnt.getResponse() != null) {
             Vector<? extends VariableBinding> recVBs = respEvnt.getResponse()
                     .getVariableBindings();
             String[] v = new String[recVBs.size()];
             for (int i = 0; i < recVBs.size(); i++) {
                 VariableBinding recVB = recVBs.elementAt(i);
-                v[i] = recVB.getVariable().toString();
+                if(recVB.getSyntax() == 4){
+                    v[i] = octetStr2Readable(recVB.getVariable().toString());
+                }
+                else {
+                    v[i] = recVB.getVariable().toString();
+                }
             }
             return v;
         }
         return null;
 
     }
-
-    /*public static void main(String[] args){
-        SnmpServer server = new SnmpServer("127.0.0.1", 161);
-        int[] oid = {1, 3, 6, 1, 2, 1, 1, 1};
-        String[] strs = server.getInfo(oid);
-    }*/
 
 }

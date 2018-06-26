@@ -15,10 +15,6 @@ public class HelloMvcController {
         return "home";
     }
 
-    @RequestMapping("/test")
-    public String testHandler(){
-        return "test";
-    }
 
     /**
      * 使用JSON作为响应内容

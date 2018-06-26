@@ -1,4 +1,4 @@
-package com.example.demo;
+package com.example.demo.snmpServer.Data;
 
 public class SysInfo {
     private String sysDescr;
@@ -35,6 +35,24 @@ public class SysInfo {
         }
         this.sysUpTime = t;
     }
+    public String getSysContact(){
+        return this.sysContact;
+    }
+    public void setSysContact(String contact){
+        this.sysContact = contact;
+    }
 
+    public String getSysName(){
+        return this.sysName;
+    }
+    public void setSysName(String name){
+        this.sysName = name;
+    }
 
+    public String getSysLocation(){
+        return this.sysLocation;
+    }
+    public void setSysLocation(String location){
+        this.sysLocation = location;
+    }
 }
