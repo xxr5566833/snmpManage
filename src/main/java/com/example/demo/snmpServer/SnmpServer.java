@@ -28,10 +28,10 @@ public class SnmpServer {
             e.printStackTrace();
         }
     }
-    public String[] getInfo(int[] oid) {
+    public String[] getInfo(int[] oid, boolean transflag) {
         try {
             //this.setPDU(oid);
-            String[] s = this.getPDU(oid);
+            String[] s = this.getPDU(oid, transflag);
             return s;
         } catch (IOException e) {
             e.printStackTrace();
@@ -63,7 +63,8 @@ public class SnmpServer {
         pdu.setType(PDU.SET);
         sendPDU(pdu);
     }
-
+    //snmp4j贴心的帮我把中文转成了octet的String形式，然后不给我转回来的方法？？
+    //害得我得一个字符一个字符先转化为字节数组，然后转化为最后的GBK编码的String
     public static String octetStr2Readable(String s){
         //byte[] trues = s.getBytes();
         /*for(int j = 0 ; j < trues.length ; j++){
@@ -107,7 +108,7 @@ public class SnmpServer {
         return news;
     }
 
-    public String[] getPDU(int[] oid) throws IOException {
+    public String[] getPDU(int[] oid, boolean transflag) throws IOException {
         // get PDU
         PDU pdu = new PDU();
         pdu.add(new VariableBinding(new OID(oid)));
@@ -119,7 +120,8 @@ public class SnmpServer {
             String[] v = new String[recVBs.size()];
             for (int i = 0; i < recVBs.size(); i++) {
                 VariableBinding recVB = recVBs.elementAt(i);
-                if(recVB.getSyntax() == 4){
+                //有些需要转换，但是有些不必转化比如mac地址
+                if(recVB.getSyntax() == 4 && transflag){
                     v[i] = octetStr2Readable(recVB.getVariable().toString());
                 }
                 else {
