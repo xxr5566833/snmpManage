@@ -16,9 +16,11 @@ import org.snmp4j.transport.DefaultUdpTransportMapping;
 public class SnmpServer {
     private Snmp snmp = null;
     private Address targetAddress = null;
-    public SnmpServer(String ip, int port) {
+    private String community;
+    public SnmpServer(String ip, int port, String community) {
         // 设置Agent方的IP和端口
         targetAddress = GenericAddress.parse("udp:"+ ip + "/" + port);
+        this.community = community;
         try {
             TransportMapping transport = new DefaultUdpTransportMapping();
             snmp = new Snmp(transport);
@@ -88,6 +90,25 @@ public class SnmpServer {
         }
         return null;
     }
+    public VariableBinding getVB(int[] oid, boolean transflag){
+        PDU pdu = new PDU();
+        pdu.add(new VariableBinding(new OID(oid)));
+        pdu.setType(PDU.GET);
+        ResponseEvent respEvnt = null;
+        try {
+            respEvnt = sendPDU(pdu);
+        }catch(Exception e){
+            e.printStackTrace();
+        }
+        System.out.println(respEvnt.getResponse());
+        if (respEvnt != null && respEvnt.getResponse() != null) {
+            Vector<? extends VariableBinding> recVBs = respEvnt.getResponse()
+                    .getVariableBindings();
+            return recVBs.elementAt(0);
+
+        }
+        return null;
+    }
 
     public String[] getInfo(int[] oid, boolean transflag) {
         try {
@@ -104,7 +125,7 @@ public class SnmpServer {
     public ResponseEvent sendPDU(PDU pdu) throws IOException {
         // 设置 target
         CommunityTarget target = new CommunityTarget();
-        target.setCommunity(new OctetString("public"));
+        target.setCommunity(new OctetString(this.community));
         target.setAddress(targetAddress);
         // 通信不成功时的重试次数
         target.setRetries(2);

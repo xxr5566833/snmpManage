@@ -2,6 +2,7 @@ package com.example.demo.snmpServer.Data;
 
 
 public class InterFace {
+    private int index;
     private String ifDescr;
     private IFType ifType;
     private int ifMtu;
@@ -10,6 +11,36 @@ public class InterFace {
     private Status ifAdminStatus;
     private Status ifOperStatus;
     private String ifLastChange;
+    private long inBound;
+    private long outBound;
+
+    public String getInBound() {
+        double result =(double)inBound / (1024.0 * 1024.0);
+        String s = String.format("%.2fMB", result);
+        return s;
+    }
+
+    public void setInBound(long inBound) {
+        this.inBound = inBound;
+    }
+
+    public String getOutBound() {
+        double result =(double)outBound / (1024.0 * 1024.0);
+        String s = String.format("%.2fMB", result);
+        return s;
+    }
+
+    public void setOutBound(long outBound) {
+        this.outBound = outBound;
+    }
+
+    public int getIndex() {
+        return index;
+    }
+
+    public void setIndex(int index) {
+        this.index = index;
+    }
 
     public void setIfDescr(String ifDescr) {
         this.ifDescr = ifDescr;
@@ -22,8 +53,8 @@ public class InterFace {
         this.ifAdminStatus = ifAdminStatus;
     }
 
-    public Status getIfAdminStatus() {
-        return ifAdminStatus;
+    public String getIfAdminStatus() {
+        return ifAdminStatus.toString();
     }
 
     public void setIfLastChange(String ifLastChange) {
@@ -46,8 +77,8 @@ public class InterFace {
         this.ifOperStatus = ifOperStatus;
     }
 
-    public Status getIfOperStatus() {
-        return ifOperStatus;
+    public String getIfOperStatus() {
+        return ifOperStatus.toString();
     }
 
     public void setIfPhysAddress(String ifPhysAddress) {

@@ -3,14 +3,16 @@ package com.example.demo;
 
 import com.example.demo.snmpServer.Data.*;
 import com.example.demo.snmpServer.SnmpServer;
+import com.sun.javafx.collections.MappingChange;
 import org.snmp4j.smi.OID;
+import org.snmp4j.smi.TimeTicks;
 import org.snmp4j.smi.VariableBinding;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
+import javax.servlet.http.HttpServletRequest;
 import javax.xml.bind.DatatypeConverter;
 import java.net.InterfaceAddress;
+import java.util.Map;
 import java.util.Vector;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -20,7 +22,7 @@ public class Controller {
 
     @RequestMapping("/test")
     public String[] test (@RequestParam(value = "name", defaultValue = "World")  String name){
-        SnmpServer t = new SnmpServer("127.0.0.1", 161);
+        SnmpServer t = new SnmpServer("127.0.0.1", 161, "public");
         int[] oid = {1, 3, 6, 1, 2, 1, 4, 21, 1, 2};
         Vector<? extends VariableBinding> vbs = t.walkVB(oid, false);
 
@@ -30,10 +32,13 @@ public class Controller {
         return v;
     }
 
-    @RequestMapping("/sys")
-    public SysInfo getSysInfo(){
+    //TODO：直接把类型都设成Variable就完事了，以后做
+    @RequestMapping("/getInfo")
+    public SysInfo getSysInfo(@RequestBody Map datamap){
         //除了 7 以外其他的都获取
-        SnmpServer t = new SnmpServer("127.0.0.1", 161);
+        String ip = datamap.get("ip").toString();
+        String community = datamap.get("community").toString();
+        SnmpServer t = new SnmpServer(ip, 161, community);
         int[] oid = {1, 3, 6, 1, 2, 1, 1, 1, 0};
         SysInfo sys = new SysInfo();
         String[] s = t.getInfo(oid, false);
@@ -42,8 +47,10 @@ public class Controller {
         s = t.getInfo(oid, false);
         sys.setSysObjectId(s[0]);
         oid[7] += 1;
-        s = t.getInfo(oid, false);
-        sys.setSysUpTime(s[0]);
+        // 这里不能得到String，因为不能从STring转到TimeTicks
+        VariableBinding tmp = t.getVB(oid, false);
+        sys.setSysUpTime(tmp.getVariable());
+        System.out.println(tmp);
         oid[7] += 1;
         s = t.getInfo(oid, false);
         sys.setSysContact(s[0]);
@@ -53,16 +60,18 @@ public class Controller {
         oid[7] += 1;
         s = t.getInfo(oid, false);
         sys.setSysLocation(s[0]);
+        System.out.println(sys.getSysUpTime());
         return sys;
     }
     //完成，不过速度有点慢，之后调用getBulk看能不能改善这个情况
-    @RequestMapping("/interface")
-    public InterFace[] getInterfaces(){
+    @RequestMapping("/getInterface")
+    public InterFace[] getInterfaces(@RequestBody Map datamap){
         //获取设备的接口情况,获取oid为9以前的情况
+
         Vector<InterFace> interFaces = new Vector<InterFace>();
         int interfacenum = 0;
         int[] oid = {1, 3, 6, 1, 2, 1, 2, 1, 0};
-        SnmpServer t = new SnmpServer("127.0.0.1", 161);
+        SnmpServer t = new SnmpServer((String)datamap.get("ip"), 161, (String)datamap.get("community"));
         String[] s = t.getInfo(oid, false);
         interfacenum = Integer.parseInt(s[0]);
         int[] newoid = {1, 3, 6, 1, 2, 1, 2, 2, 1, 1, 0};
@@ -71,6 +80,7 @@ public class Controller {
             newoid[10] += 1;
             newoid[9] = 1;
             InterFace inter = new InterFace();
+            inter.setIndex(newoid[10]);
             //ifDescr
             newoid[9] += 1;
             s = t.getInfo(newoid, true);
@@ -78,6 +88,7 @@ public class Controller {
             //ifType
             newoid[9] += 1;
             s = t.getInfo(newoid, false);
+            // 这里因为要传出去，所以传int更合适而不是枚举
             inter.setIfType(IFType.int2Type(Integer.parseInt(s[0])));
             //ifMtu
             newoid[9] += 1;
@@ -104,6 +115,14 @@ public class Controller {
             newoid[9] += 1;
             s = t.getInfo(newoid, false);
             inter.setIfLastChange(s[0]);
+            //inBound
+            newoid[9] = 10;
+            s = t.getInfo(newoid, false);
+            inter.setInBound(Integer.parseInt(s[0]));
+            //outBound
+            newoid[9] = 16;
+            s = t.getInfo(newoid, false);
+            inter.setOutBound(Integer.parseInt(s[0]));
             interFaces.add(inter);
         }
 
@@ -111,11 +130,11 @@ public class Controller {
         return inters;
     }
 
-    @RequestMapping("/relatedip")
-    public IP[] getRelatedIp(){
+    @RequestMapping("/getNetwork")
+    public IP[] getRelatedIp(@RequestBody Map datamap){
         IP[] ips = new IP[4];
         int[] oid = {1, 3, 6, 1, 2, 1, 4, 20, 1, 1};
-        SnmpServer t = new SnmpServer("127.0.0.1", 161);
+        SnmpServer t = new SnmpServer((String)datamap.get("ip"), 161, (String)datamap.get("community"));
         String[] s = t.walkInfo(oid, false);
         for(int i = 0 ; i < 16 ; i++){
             //这里暂定只有四个ip，mib也没有节点指示有几个related ip
@@ -127,12 +146,13 @@ public class Controller {
             ips[i / 4] = ip;
             i = i + 4;
         }
+
         return ips;
     }
     //终于完成了，但是感觉代码重复太多了，需要重构
-    @RequestMapping("/routingtable")
-    public IPRoute[] getIpRoute(){
-        SnmpServer t = new SnmpServer("127.0.0.1", 161);
+    @RequestMapping("/getRoutingTable")
+    public IPRoute[] getIpRoute(@RequestBody Map datamap){
+        SnmpServer t = new SnmpServer(datamap.get("ip").toString(), 161, datamap.get("community").toString());
 
         int count = 0;
         int oid[] = {1, 3, 6, 1, 2, 1, 4, 21, 1, 1};

@@ -1,9 +1,12 @@
 package com.example.demo.snmpServer.Data;
 
+import org.snmp4j.smi.TimeTicks;
+import org.snmp4j.smi.Variable;
+
 public class SysInfo {
     private String sysDescr;
     private String sysObjectId;
-    private String sysUpTime;
+    private Variable sysUpTime;
     private String sysContact;
     private String sysName;
     private String sysLocation;
@@ -21,19 +24,20 @@ public class SysInfo {
         this.sysObjectId = id;
     }
 
-    public String getSysUpTime(){
+    public Variable getSysUpTime(){
         return this.sysUpTime;
     }
-    public void setSysUpTime(String time){
+    public void setSysUpTime(Variable time){
         //对时间处理一下，表达更清晰
-        String t = new String();
+        /*String t = new String();
         String[] timelist = time.split(":");
         //鉴于时间是固定的 xx时xx分xx.xx秒
         String[] unit = {"小时", "分钟", "秒"};
         for(int i = 0 ; i < timelist.length ; i++){
             t = t + timelist[i] + unit[i];
-        }
-        this.sysUpTime = t;
+        }*/
+        //学长写了处理函数，这里直接传入吧
+        this.sysUpTime = time;
     }
     public String getSysContact(){
         return this.sysContact;
