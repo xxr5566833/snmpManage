@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.*;
 import javax.servlet.http.HttpServletRequest;
 import javax.xml.bind.DatatypeConverter;
 import java.net.InterfaceAddress;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Vector;
 import java.util.concurrent.atomic.AtomicLong;
@@ -21,10 +22,10 @@ public class Controller {
     private final AtomicLong counter = new AtomicLong();
 
     @RequestMapping("/test")
-    public String[] test (@RequestParam(value = "name", defaultValue = "World")  String name){
+    public String[] test (){
         SnmpServer t = new SnmpServer("127.0.0.1", 161, "public");
         int[] oid = {1, 3, 6, 1, 2, 1, 4, 21, 1, 2};
-        Vector<? extends VariableBinding> vbs = t.walkVB(oid, false);
+        // Vector<? extends VariableBinding> vbs = t.walkVB(oid, false);
 
         String[] v = t.walkInfo(oid, false);
         for(int i = 0 ; i < v.length ; i++)
@@ -32,6 +33,50 @@ public class Controller {
         return v;
     }
 
+    @RequestMapping("/updateStatus")
+    public String[] getInterfaceStatus(@RequestBody Map datamap){
+        int interfacenum = 0;
+        int[] oid = {1, 3, 6, 1, 2, 1, 2, 1, 0};
+        SnmpServer t = new SnmpServer((String)datamap.get("ip"), 161, (String)datamap.get("community"));
+        String[] s = t.getInfo(oid, false);
+        interfacenum = Integer.parseInt(s[0]);
+        int[] newoid = {1, 3, 6, 1, 2, 1, 2, 2, 2, 1, 8};
+        s = t.walkInfo(newoid, false);
+        String[] result = new String[interfacenum];
+        for(int i = 0 ; i < interfacenum ; i++){
+            int type = Integer.parseInt(s[i]);
+            result[i] = (type == 1 ? "UP" : "DOWN");
+        }
+        return result;
+
+    }
+
+    @RequestMapping("/getDeviceType")
+    public int getDeviceType(@RequestBody Map datamap){
+        DeviceType type;
+        String ip = datamap.get("ip").toString();
+        String community = datamap.get("community").toString();
+        SnmpServer t = new SnmpServer(ip, 161, community);
+        //首先判断ipForwarding
+        int oid1[] = {1, 3, 6, 1, 2, 1, 4, 1, 0};
+        String[] s = t.getInfo(oid1, false);
+        if(Integer.parseInt(s[0]) == 2){
+            type = DeviceType.host;
+        }
+        else{
+            // 交换机和路由器
+            int oid2[] = {1, 3, 6, 1, 2, 1, 17, 1, 3, 0};
+            s = t.getInfo(oid2, false);
+            if(s != null)
+            {
+                type = DeviceType.exchange;
+            }
+            else
+                type = DeviceType.router;
+        }
+        System.out.println(type.getType());
+        return type.getType();
+    }
     //TODO：直接把类型都设成Variable就完事了，以后做
     @RequestMapping("/getInfo")
     public SysInfo getSysInfo(@RequestBody Map datamap){
@@ -63,6 +108,7 @@ public class Controller {
         System.out.println(sys.getSysUpTime());
         return sys;
     }
+
     //完成，不过速度有点慢，之后调用getBulk看能不能改善这个情况
     @RequestMapping("/getInterface")
     public InterFace[] getInterfaces(@RequestBody Map datamap){
@@ -252,5 +298,18 @@ public class Controller {
         return routes;
     }
 
+    @RequestMapping("/setAdminStatus")
+    public boolean setAdminStatus(@RequestBody Map datamap){
+        boolean result = false;
+        /*Map datamap = new HashMap();
+        datamap.put("ip", "127.0.0.1");
+        datamap.put("community", "public");
+        datamap.put("index", 25);
+        datamap.put("status", 0);*/
+        SnmpServer t = new SnmpServer(datamap.get("ip").toString(), 161, datamap.get("community").toString());
+        int oid[] = {1, 3, 6, 1, 2, 1, 2, 2, 1, 7, (int)datamap.get("index")};
+        result = t.setStatus(oid, (int)datamap.get("status"));
+        return result;
+    }
 
 }

@@ -13,6 +13,9 @@ import org.snmp4j.event.ResponseEvent;
 import org.snmp4j.mp.SnmpConstants;
 import org.snmp4j.smi.*;
 import org.snmp4j.transport.DefaultUdpTransportMapping;
+
+import javax.xml.ws.Response;
+
 public class SnmpServer {
     private Snmp snmp = null;
     private Address targetAddress = null;
@@ -138,14 +141,32 @@ public class SnmpServer {
         return snmp.send(pdu, target);
     }
 
-
-
-    public void setPDU(int[] oid) throws IOException {
+    public boolean setStatus(int[] oid, int status){
+        ResponseEvent respEvnt = null;
         // set PDU
         PDU pdu = new PDU();
-        pdu.add(new VariableBinding(new OID(oid), new OctetString("SNMPTEST")));
+        // 既然Integer32是Variable的子类，那直接传Integer32就好
+        pdu.add(new VariableBinding(new OID(oid), new Integer32(status)));
+        // errorStatus=Wrong value(10), The value cannot be assigned to the variable.
         pdu.setType(PDU.SET);
-        sendPDU(pdu);
+        try{
+            respEvnt = sendPDU(pdu);
+        }catch(Exception e){
+            e.printStackTrace();
+        }
+        System.out.println(respEvnt.getResponse());
+        PDU response = respEvnt.getResponse();
+        return response.getErrorIndex() == 0;
+    }
+
+    public ResponseEvent setPDU(int[] oid) throws IOException {
+        // set PDU
+        PDU pdu = new PDU();
+        // 既然Integer32是Variable的子类，那直接传Integer32就好
+        pdu.add(new VariableBinding(new OID(oid), new Integer32(oid[10])));
+        // errorStatus=Wrong value(10), The value cannot be assigned to the variable.
+        pdu.setType(PDU.SET);
+        return sendPDU(pdu);
     }
     //snmp4j贴心的帮我把中文转成了octet的String形式，然后不给我转回来的方法？？
     //害得我得一个字符一个字符先转化为字节数组，然后转化为最后的GBK编码的String
