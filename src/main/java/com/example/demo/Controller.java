@@ -251,6 +251,13 @@ public class Controller {
         }
         return routes;
     }
-
-
+    @RequestMapping("/login")
+    public int login(@RequestBody String phoneNumber,@RequestBody String password){
+        if(phoneNumber.equals("13121270825")){
+            if(password.equals("abcd"))
+                return 2;
+            else return 1;
+        }
+        else return 0;
+    }
 }
