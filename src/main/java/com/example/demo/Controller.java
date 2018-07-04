@@ -3,6 +3,8 @@ package com.example.demo;
 
 import com.example.demo.snmpServer.Data.*;
 import com.example.demo.snmpServer.SnmpServer;
+import com.example.demo.snmpServer.SnmpServerCreater;
+import com.example.demo.snmpServer.TrapManager;
 import com.sun.javafx.collections.MappingChange;
 import org.snmp4j.smi.OID;
 import org.snmp4j.smi.TimeTicks;
@@ -20,24 +22,36 @@ import java.util.concurrent.atomic.AtomicLong;
 @RestController
 public class Controller {
     private final AtomicLong counter = new AtomicLong();
+    private static SnmpServerCreater creater = new SnmpServerCreater();
 
     @RequestMapping("/test")
     public String[] test (){
-        SnmpServer t = new SnmpServer("127.0.0.1", 161, "public");
-        int[] oid = {1, 3, 6, 1, 2, 1, 4, 21, 1, 2};
+        SnmpServer t = creater.getServer("127.0.0.1", "public");
+        //int[] oid = {1, 3, 6, 1, 2, 1, 4, 21, 1, 2};
         // Vector<? extends VariableBinding> vbs = t.walkVB(oid, false);
 
-        String[] v = t.walkInfo(oid, false);
+        /*String[] v = t.walkInfo(oid, false);
         for(int i = 0 ; i < v.length ; i++)
-            System.out.println(v[i]);
+            System.out.println(v[i]);*/
+
+        int size = TrapManager.trapCache.size();
+        String v[] = new String[TrapManager.trapCache.size()];
+        for(int i = 0 ; i < size ; i++){
+            v[i] = TrapManager.trapCache.elementAt(i).toString();
+        }
+
         return v;
     }
 
     @RequestMapping("/updateStatus")
     public String[] getInterfaceStatus(@RequestBody Map datamap){
+
         int interfacenum = 0;
         int[] oid = {1, 3, 6, 1, 2, 1, 2, 1, 0};
-        SnmpServer t = new SnmpServer((String)datamap.get("ip"), 161, (String)datamap.get("community"));
+        String ip = (String)datamap.get("ip");
+        String community = (String)datamap.get("community");
+        SnmpServer t = creater.getServer(ip, community);
+
         String[] s = t.getInfo(oid, false);
         interfacenum = Integer.parseInt(s[0]);
         int[] newoid = {1, 3, 6, 1, 2, 1, 2, 2, 2, 1, 8};
@@ -47,6 +61,7 @@ public class Controller {
             int type = Integer.parseInt(s[i]);
             result[i] = (type == 1 ? "UP" : "DOWN");
         }
+
         return result;
 
     }
@@ -56,7 +71,7 @@ public class Controller {
         DeviceType type;
         String ip = datamap.get("ip").toString();
         String community = datamap.get("community").toString();
-        SnmpServer t = new SnmpServer(ip, 161, community);
+        SnmpServer t = creater.getServer(ip, community);
         //首先判断ipForwarding
         int oid1[] = {1, 3, 6, 1, 2, 1, 4, 1, 0};
         String[] s = t.getInfo(oid1, false);
@@ -83,7 +98,7 @@ public class Controller {
         //除了 7 以外其他的都获取
         String ip = datamap.get("ip").toString();
         String community = datamap.get("community").toString();
-        SnmpServer t = new SnmpServer(ip, 161, community);
+        SnmpServer t = this.creater.getServer(ip, community);
         int[] oid = {1, 3, 6, 1, 2, 1, 1, 1, 0};
         SysInfo sys = new SysInfo();
         String[] s = t.getInfo(oid, false);
@@ -117,7 +132,7 @@ public class Controller {
         Vector<InterFace> interFaces = new Vector<InterFace>();
         int interfacenum = 0;
         int[] oid = {1, 3, 6, 1, 2, 1, 2, 1, 0};
-        SnmpServer t = new SnmpServer((String)datamap.get("ip"), 161, (String)datamap.get("community"));
+        SnmpServer t = this.creater.getServer((String)datamap.get("ip"), (String)datamap.get("community"));
         String[] s = t.getInfo(oid, false);
         interfacenum = Integer.parseInt(s[0]);
         int[] newoid = {1, 3, 6, 1, 2, 1, 2, 2, 1, 1, 0};
@@ -180,7 +195,7 @@ public class Controller {
     public IP[] getRelatedIp(@RequestBody Map datamap){
         IP[] ips = new IP[4];
         int[] oid = {1, 3, 6, 1, 2, 1, 4, 20, 1, 1};
-        SnmpServer t = new SnmpServer((String)datamap.get("ip"), 161, (String)datamap.get("community"));
+        SnmpServer t = this.creater.getServer((String)datamap.get("ip"), (String)datamap.get("community"));
         String[] s = t.walkInfo(oid, false);
         for(int i = 0 ; i < 16 ; i++){
             //这里暂定只有四个ip，mib也没有节点指示有几个related ip
@@ -198,7 +213,7 @@ public class Controller {
     //终于完成了，但是感觉代码重复太多了，需要重构
     @RequestMapping("/getRoutingTable")
     public IPRoute[] getIpRoute(@RequestBody Map datamap){
-        SnmpServer t = new SnmpServer(datamap.get("ip").toString(), 161, datamap.get("community").toString());
+        SnmpServer t = this.creater.getServer((String)datamap.get("ip"), (String)datamap.get("community"));
 
         int count = 0;
         int oid[] = {1, 3, 6, 1, 2, 1, 4, 21, 1, 1};
@@ -306,10 +321,15 @@ public class Controller {
         datamap.put("community", "public");
         datamap.put("index", 25);
         datamap.put("status", 0);*/
-        SnmpServer t = new SnmpServer(datamap.get("ip").toString(), 161, datamap.get("community").toString());
+        SnmpServer t = this.creater.getServer((String)datamap.get("ip"), (String)datamap.get("community"));
         int oid[] = {1, 3, 6, 1, 2, 1, 2, 2, 1, 7, (int)datamap.get("index")};
         result = t.setStatus(oid, (int)datamap.get("status"));
         return result;
+    }
+
+    @RequestMapping("/getTraps")
+    public String getTraps(){
+        return TrapManager.trapCache.elementAt(0).toString();
     }
 
 }

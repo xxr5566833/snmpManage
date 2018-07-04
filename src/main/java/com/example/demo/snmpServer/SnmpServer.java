@@ -5,10 +5,7 @@ import java.nio.charset.Charset;
 import java.util.Vector;
 
 import com.sun.jmx.snmp.SnmpString;
-import org.snmp4j.CommunityTarget;
-import org.snmp4j.PDU;
-import org.snmp4j.Snmp;
-import org.snmp4j.TransportMapping;
+import org.snmp4j.*;
 import org.snmp4j.event.ResponseEvent;
 import org.snmp4j.mp.SnmpConstants;
 import org.snmp4j.smi.*;
@@ -16,10 +13,58 @@ import org.snmp4j.transport.DefaultUdpTransportMapping;
 
 import javax.xml.ws.Response;
 
-public class SnmpServer {
+public class SnmpServer implements Runnable{
     private Snmp snmp = null;
     private Address targetAddress = null;
     private String community;
+    private Vector<PDU> trapCache;
+    private TransportMapping trapTransport;
+    private Snmp trapSnmp;
+    public void initTrapListen(String ip, int port){
+
+        this.trapCache = new Vector<PDU>();
+        // 设置接收trap的IP和端口
+        try {
+            this.trapTransport = new DefaultUdpTransportMapping(new UdpAddress(
+                    "127.0.0.1/162"));
+        }catch(Exception e){
+            e.printStackTrace();
+        }
+        trapSnmp = new Snmp(this.trapTransport);
+        CommandResponder trapRec = new CommandResponder() {
+            public synchronized void processPdu(CommandResponderEvent e) {
+                // 接收trap
+                PDU command = e.getPDU();
+                System.out.println("收到！");
+
+                if (command != null) {
+                    System.out.println(command.toString());
+                    TrapManager.trapCache.add(command);
+                }
+            }
+        };
+        trapSnmp.addCommandResponder(trapRec);
+        try {
+            this.trapTransport.listen();
+        }catch(Exception e){
+            e.printStackTrace();
+        }
+    }
+
+    public synchronized void listen() {
+        System.out.println("Waiting for traps..");
+        try {
+            this.wait();//Wait for traps to come in
+        } catch (InterruptedException ex) {
+            System.out.println("Interrupted while waiting for traps: " + ex);
+            System.exit(-1);
+        }
+    }
+    public void run(){
+        this.listen();
+    }
+
+
     public SnmpServer(String ip, int port, String community) {
         // 设置Agent方的IP和端口
         targetAddress = GenericAddress.parse("udp:"+ ip + "/" + port);
@@ -32,6 +77,7 @@ public class SnmpServer {
         catch(IOException e){
             e.printStackTrace();
         }
+        this.initTrapListen(ip, port);
     }
     public String[] walkInfo(int[] oid, boolean transflag){
         try {
@@ -42,6 +88,15 @@ public class SnmpServer {
             e.printStackTrace();
             return null;
         }
+    }
+    public void close(){
+        try {
+            this.snmp.close();
+            this.trapSnmp.close();
+        }catch(Exception e){
+            e.printStackTrace();
+        }
+
     }
 
     public String[] walkPDU(int[] oid, boolean transflag) throws IOException {
