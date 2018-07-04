@@ -252,9 +252,9 @@ public class Controller {
         return routes;
     }
     @RequestMapping("/login")
-    public int login(@RequestBody String phoneNumber,@RequestBody String password){
-        if(phoneNumber.equals("13121270825")){
-            if(password.equals("abcd"))
+    public int login(@RequestBody Map datamap){
+        if(datamap.get("phoneNumber").equals("13121270825")){
+            if(datamap.get("password").equals("abcd"))
                 return 2;
             else return 1;
         }
