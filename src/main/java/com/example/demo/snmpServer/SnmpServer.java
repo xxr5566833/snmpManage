@@ -17,16 +17,13 @@ public class SnmpServer implements Runnable{
     private Snmp snmp = null;
     private Address targetAddress = null;
     private String community;
-    private Vector<PDU> trapCache;
     private TransportMapping trapTransport;
     private Snmp trapSnmp;
     public void initTrapListen(String ip, int port){
-
-        this.trapCache = new Vector<PDU>();
         // 设置接收trap的IP和端口
         try {
             this.trapTransport = new DefaultUdpTransportMapping(new UdpAddress(
-                    "127.0.0.1/162"));
+                    ip + "/" + port));
         }catch(Exception e){
             e.printStackTrace();
         }
@@ -40,6 +37,7 @@ public class SnmpServer implements Runnable{
                 if (command != null) {
                     System.out.println(command.toString());
                     TrapManager.trapCache.add(command);
+                    // 你可以在这里添加Trap提示
                 }
             }
         };
@@ -77,7 +75,8 @@ public class SnmpServer implements Runnable{
         catch(IOException e){
             e.printStackTrace();
         }
-        this.initTrapListen(ip, port);
+        // 默认trap监听162
+        this.initTrapListen(ip, 162);
     }
     public String[] walkInfo(int[] oid, boolean transflag){
         try {

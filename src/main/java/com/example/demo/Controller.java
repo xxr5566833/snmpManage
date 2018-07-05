@@ -27,18 +27,18 @@ public class Controller {
     @RequestMapping("/test")
     public String[] test (){
         SnmpServer t = creater.getServer("127.0.0.1", "public");
-        //int[] oid = {1, 3, 6, 1, 2, 1, 4, 21, 1, 2};
+        int[] oid = {1, 3, 6, 1, 2, 1, 1, 1, 0};
         // Vector<? extends VariableBinding> vbs = t.walkVB(oid, false);
 
-        /*String[] v = t.walkInfo(oid, false);
+        String[] v = t.getInfo(oid, false);
         for(int i = 0 ; i < v.length ; i++)
-            System.out.println(v[i]);*/
+            System.out.println(v[i]);
 
-        int size = TrapManager.trapCache.size();
+        /*int size = TrapManager.trapCache.size();
         String v[] = new String[TrapManager.trapCache.size()];
         for(int i = 0 ; i < size ; i++){
             v[i] = TrapManager.trapCache.elementAt(i).toString();
-        }
+        }*/
 
         return v;
     }
@@ -98,6 +98,8 @@ public class Controller {
         //除了 7 以外其他的都获取
         String ip = datamap.get("ip").toString();
         String community = datamap.get("community").toString();
+        System.out.println(ip);
+        System.out.println(community);
         SnmpServer t = this.creater.getServer(ip, community);
         int[] oid = {1, 3, 6, 1, 2, 1, 1, 1, 0};
         SysInfo sys = new SysInfo();

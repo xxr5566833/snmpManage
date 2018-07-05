@@ -5,8 +5,9 @@ import java.util.Map;
 
 public class SnmpServerCreater {
     private Map Servers = new HashMap();
-    public SnmpServer getServer(String ip, String community){
+    public synchronized SnmpServer getServer(String ip, String community){
         SnmpServer t = null;
+
         if(this.Servers.containsKey(ip)){
             t = (SnmpServer) this.Servers.get(ip);
         }
