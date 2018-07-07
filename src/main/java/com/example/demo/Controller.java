@@ -26,14 +26,16 @@ public class Controller {
 
     @RequestMapping("/test")
     public String[] test (){
-        SnmpServer t = creater.getServer("127.0.0.1", "public");
-        int[] oid = {1, 3, 6, 1, 2, 1, 1, 1, 0};
+        SnmpServer t = creater.getServer("192.168.2.10", "public");
+        int[] oid = {1, 3, 6, 1, 2, 1, 2, 2, 1, 8};
         // Vector<? extends VariableBinding> vbs = t.walkVB(oid, false);
 
-        String[] v = t.getInfo(oid, false);
+        /*String[] v = t.getInfo(oid, false);
+        for(int i = 0 ; i < v.length ; i++)
+            System.out.println(v[i]);*/
+        String[] v = t.walkInfo(oid, false);
         for(int i = 0 ; i < v.length ; i++)
             System.out.println(v[i]);
-
         /*int size = TrapManager.trapCache.size();
         String v[] = new String[TrapManager.trapCache.size()];
         for(int i = 0 ; i < size ; i++){
@@ -54,10 +56,11 @@ public class Controller {
 
         String[] s = t.getInfo(oid, false);
         interfacenum = Integer.parseInt(s[0]);
-        int[] newoid = {1, 3, 6, 1, 2, 1, 2, 2, 2, 1, 8};
+        int[] newoid = {1, 3, 6, 1, 2, 1, 2, 2, 1, 8};
         s = t.walkInfo(newoid, false);
         String[] result = new String[interfacenum];
         for(int i = 0 ; i < interfacenum ; i++){
+            System.out.println(s[i]);
             int type = Integer.parseInt(s[i]);
             result[i] = (type == 1 ? "UP" : "DOWN");
         }

@@ -23,7 +23,7 @@ public class SnmpServer implements Runnable{
         // 设置接收trap的IP和端口
         try {
             this.trapTransport = new DefaultUdpTransportMapping(new UdpAddress(
-                    ip + "/" + port));
+                    "127.0.0.1/" + port));
         }catch(Exception e){
             e.printStackTrace();
         }
@@ -76,7 +76,7 @@ public class SnmpServer implements Runnable{
             e.printStackTrace();
         }
         // 默认trap监听162
-        this.initTrapListen(ip, 162);
+        //this.initTrapListen(ip, 162);
     }
     public String[] walkInfo(int[] oid, boolean transflag){
         try {
@@ -100,9 +100,12 @@ public class SnmpServer implements Runnable{
 
     public String[] walkPDU(int[] oid, boolean transflag) throws IOException {
         // get PDU
+        for(int i = 0 ; i < oid.length ; i++)
+            System.out.println(oid[i]);
         PDU pdu = new PDU();
         pdu.add(new VariableBinding(new OID(oid)));
         pdu.setType(PDU.GETBULK);
+
         pdu.setMaxRepetitions(1000);
 
         ResponseEvent respEvnt = sendPDU(pdu);
@@ -187,7 +190,7 @@ public class SnmpServer implements Runnable{
         // 通信不成功时的重试次数
         target.setRetries(2);
         // 超时时间
-        target.setTimeout(1500);
+        target.setTimeout(20000);
         //终于知道问题的关键所在了  2c版本才增加了GETBULK..
         //那么为什么之前在试2c时发现1可以2c却不可以呢？具体哪个例子我也忘了，浪费这么长时间哎
         target.setVersion(SnmpConstants.version2c);
@@ -248,13 +251,18 @@ public class SnmpServer implements Runnable{
                 result += (byte)(octets[j] - 'a' + 10);
             }
             j++;
-            if(octets[j] >= '0' && octets[j] <= '9'){
-                result = (byte)(octets[j] - '0' + result * 16);
+            // length 竟然可以是偶数
+            if(j < octets.length)
+            {
+                if(octets[j] >= '0' && octets[j] <= '9'){
+                    result = (byte)(octets[j] - '0' + result * 16);
+                }
+                else if(octets[j] >= 'a' && octets[j] <= 'f'){
+                    result = (byte)(octets[j] - 'a' + 10 + + result * 16);
+                }
+                j++;
             }
-            else if(octets[j] >= 'a' && octets[j] <= 'f'){
-                result = (byte)(octets[j] - 'a' + 10 + + result * 16);
-            }
-            j++;
+
             bytes[length++] = result;
         }
         String news = new String();
@@ -281,7 +289,7 @@ public class SnmpServer implements Runnable{
             for (int i = 0; i < recVBs.size(); i++) {
                 VariableBinding recVB = recVBs.elementAt(i);
                 //有些需要转换，但是有些不必转化比如mac地址
-                if(recVB.getSyntax() == 4 && transflag){
+                if(recVB.getSyntax() == 4 && transflag && recVB.getVariable().toString().charAt(2) == ':'){
                     v[i] = octetStr2Readable(recVB.getVariable().toString());
                 }
                 else {
