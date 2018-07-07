@@ -6,66 +6,52 @@ import com.example.demo.snmpServer.SnmpServer;
 import com.example.demo.snmpServer.SnmpServerCreater;
 import com.example.demo.snmpServer.TrapManager;
 import com.sun.javafx.collections.MappingChange;
+import jdk.nashorn.internal.ir.IfNode;
+import org.apache.tomcat.util.bcel.Const;
+import org.snmp4j.Snmp;
 import org.snmp4j.smi.OID;
 import org.snmp4j.smi.TimeTicks;
+import org.snmp4j.smi.Variable;
 import org.snmp4j.smi.VariableBinding;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.xml.bind.DatatypeConverter;
+import java.io.IOException;
 import java.net.InterfaceAddress;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Vector;
 import java.util.concurrent.atomic.AtomicLong;
 
+import static com.sun.jmx.snmp.SnmpStatusException.noSuchObject;
+
 @RestController
 public class Controller {
-    private final AtomicLong counter = new AtomicLong();
     private static SnmpServerCreater creater = new SnmpServerCreater();
 
     @RequestMapping("/test")
-    public String[] test (){
-        SnmpServer t = creater.getServer("192.168.2.10", "public");
-        int[] oid = {1, 3, 6, 1, 2, 1, 2, 2, 1, 8};
-        // Vector<? extends VariableBinding> vbs = t.walkVB(oid, false);
+    public SysInfo test (){
+        SnmpServer t = creater.getServer("192.168.2.1", "public");
+        int[] oid = {1, 3, 6, 1, 2, 1, 4, 99, 1, 1};
+        SysInfo sys = null;
+        try {
+            sys = t.getSysInfo();
+        }catch(Exception e){
+            e.printStackTrace();
+        }
 
-        /*String[] v = t.getInfo(oid, false);
-        for(int i = 0 ; i < v.length ; i++)
-            System.out.println(v[i]);*/
-        String[] v = t.walkInfo(oid, false);
-        for(int i = 0 ; i < v.length ; i++)
-            System.out.println(v[i]);
-        /*int size = TrapManager.trapCache.size();
-        String v[] = new String[TrapManager.trapCache.size()];
-        for(int i = 0 ; i < size ; i++){
-            v[i] = TrapManager.trapCache.elementAt(i).toString();
-        }*/
+        return sys;
 
-        return v;
+
     }
 
     @RequestMapping("/updateStatus")
     public String[] getInterfaceStatus(@RequestBody Map datamap){
-
-        int interfacenum = 0;
-        int[] oid = {1, 3, 6, 1, 2, 1, 2, 1, 0};
         String ip = (String)datamap.get("ip");
         String community = (String)datamap.get("community");
         SnmpServer t = creater.getServer(ip, community);
-
-        String[] s = t.getInfo(oid, false);
-        interfacenum = Integer.parseInt(s[0]);
-        int[] newoid = {1, 3, 6, 1, 2, 1, 2, 2, 1, 8};
-        s = t.walkInfo(newoid, false);
-        String[] result = new String[interfacenum];
-        for(int i = 0 ; i < interfacenum ; i++){
-            System.out.println(s[i]);
-            int type = Integer.parseInt(s[i]);
-            result[i] = (type == 1 ? "UP" : "DOWN");
-        }
-
-        return result;
+        return t.getInterfacesStatus();
 
     }
 
@@ -76,124 +62,102 @@ public class Controller {
         String community = datamap.get("community").toString();
         SnmpServer t = creater.getServer(ip, community);
         //首先判断ipForwarding
-        int oid1[] = {1, 3, 6, 1, 2, 1, 4, 1, 0};
-        String[] s = t.getInfo(oid1, false);
-        if(Integer.parseInt(s[0]) == 2){
+        Variable ipforwarding = null;
+        try {
+            ipforwarding = t.getTreeNode(Constant.IpForwarding);
+        }catch(IOException e){
+            e.printStackTrace();
+        }
+        if(ipforwarding.toInt() == 2){
             type = DeviceType.host;
         }
         else{
             // 交换机和路由器
-            int oid2[] = {1, 3, 6, 1, 2, 1, 17, 1, 3, 0};
-            s = t.getInfo(oid2, false);
-            if(s != null)
+            Variable v = null;
+            try{
+                v = t.getTreeNode(Constant.OnlyRouterOid);
+            }catch(IOException e){
+                e.printStackTrace();
+            }
+            // 128是NoSuchObject的对应syntax的编号
+            if(v.getSyntax() == 128)
             {
                 type = DeviceType.exchange;
             }
-            else
+            else {
+                // 路由器或者是三层交换机
                 type = DeviceType.router;
+            }
         }
-        System.out.println(type.getType());
         return type.getType();
     }
-    //TODO：直接把类型都设成Variable就完事了，以后做
     @RequestMapping("/getInfo")
     public SysInfo getSysInfo(@RequestBody Map datamap){
         //除了 7 以外其他的都获取
         String ip = datamap.get("ip").toString();
         String community = datamap.get("community").toString();
-        System.out.println(ip);
-        System.out.println(community);
         SnmpServer t = this.creater.getServer(ip, community);
-        int[] oid = {1, 3, 6, 1, 2, 1, 1, 1, 0};
-        SysInfo sys = new SysInfo();
-        String[] s = t.getInfo(oid, false);
-        sys.setSysDescr(s[0]);
-        oid[7] += 1;
-        s = t.getInfo(oid, false);
-        sys.setSysObjectId(s[0]);
-        oid[7] += 1;
-        // 这里不能得到String，因为不能从STring转到TimeTicks
-        VariableBinding tmp = t.getVB(oid, false);
-        sys.setSysUpTime(tmp.getVariable());
-        System.out.println(tmp);
-        oid[7] += 1;
-        s = t.getInfo(oid, false);
-        sys.setSysContact(s[0]);
-        oid[7] += 1;
-        s = t.getInfo(oid, false);
-        sys.setSysName(s[0]);
-        oid[7] += 1;
-        s = t.getInfo(oid, false);
-        sys.setSysLocation(s[0]);
-        System.out.println(sys.getSysUpTime());
-        return sys;
+        return t.getSysInfo();
     }
 
     //完成，不过速度有点慢，之后调用getBulk看能不能改善这个情况
     @RequestMapping("/getInterface")
     public InterFace[] getInterfaces(@RequestBody Map datamap){
         //获取设备的接口情况,获取oid为9以前的情况
-
-        Vector<InterFace> interFaces = new Vector<InterFace>();
-        int interfacenum = 0;
-        int[] oid = {1, 3, 6, 1, 2, 1, 2, 1, 0};
         SnmpServer t = this.creater.getServer((String)datamap.get("ip"), (String)datamap.get("community"));
-        String[] s = t.getInfo(oid, false);
-        interfacenum = Integer.parseInt(s[0]);
-        int[] newoid = {1, 3, 6, 1, 2, 1, 2, 2, 1, 1, 0};
-        for(int i = 0 ; i < interfacenum ; i++){
-            //每个接口每个属性取信息
-            newoid[10] += 1;
-            newoid[9] = 1;
-            InterFace inter = new InterFace();
-            inter.setIndex(newoid[10]);
-            //ifDescr
-            newoid[9] += 1;
-            s = t.getInfo(newoid, true);
-            inter.setIfDescr(s[0]);
-            //ifType
-            newoid[9] += 1;
-            s = t.getInfo(newoid, false);
-            // 这里因为要传出去，所以传int更合适而不是枚举
-            inter.setIfType(IFType.int2Type(Integer.parseInt(s[0])));
-            //ifMtu
-            newoid[9] += 1;
-            s = t.getInfo(newoid, false);
-            inter.setIfMtu(Integer.parseInt(s[0]));
-            //ifSpeed
-            newoid[9] += 1;
-            s = t.getInfo(newoid, false);
-            inter.setIfSpeed(Integer.parseInt(s[0]));
-            //ifPhysAddress
-            newoid[9] += 1;
-            s = t.getInfo(newoid, false);
-            System.out.println(s[0]);
-            inter.setIfPhysAddress(s[0]);
-            //ifAdminStatus
-            newoid[9] += 1;
-            s = t.getInfo(newoid, false);
-            inter.setIfAdminStatus(Status.values()[Integer.parseInt(s[0])]);
-            //ifOperStatus
-            newoid[9] += 1;
-            s = t.getInfo(newoid, false);
-            inter.setIfOperStatus(Status.values()[Integer.parseInt(s[0])]);
-            //ifLastChange
-            newoid[9] += 1;
-            s = t.getInfo(newoid, false);
-            inter.setIfLastChange(s[0]);
-            //inBound
-            newoid[9] = 10;
-            s = t.getInfo(newoid, false);
-            inter.setInBound(Integer.parseInt(s[0]));
-            //outBound
-            newoid[9] = 16;
-            s = t.getInfo(newoid, false);
-            inter.setOutBound(Integer.parseInt(s[0]));
-            interFaces.add(inter);
+        int interfacenum = t.getInterfaceNum();
+        InterFace[] interFaces = new InterFace[interfacenum];
+        Vector<Variable> ifdescrvbs = null;
+        Vector<Variable> ifindexvbs = null;
+        Vector<Variable> iftypevbs = null;
+        Vector<Variable> ifmtuvbs = null;
+        Vector<Variable> ifspeedvbs = null;
+        Vector<Variable> ifphysaddressvbs = null;
+        Vector<Variable> ifadminstatusvbs = null;
+        Vector<Variable> iflastchangevbs = null;
+        Vector<Variable> ifopestatusvbs = null;
+        Vector<Variable> ifinboundvbs = null;
+        Vector<Variable> ifoutboundvbs = null;
+        // 得到接口数量后，开始获取每一组信息
+        try {
+            ifdescrvbs = t.getSubTree(Constant.IfDescr);
+            ifindexvbs = t.getSubTree(Constant.IfIndex);
+            iftypevbs = t.getSubTree(Constant.IfType);
+            ifmtuvbs = t.getSubTree(Constant.IfMtu);
+            ifspeedvbs = t.getSubTree(Constant.IfSpeed);
+            ifphysaddressvbs = t.getSubTree(Constant.IfPhysAddress);
+            ifadminstatusvbs = t.getSubTree(Constant.IfAdminStatus);
+            ifopestatusvbs = t.getSubTree(Constant.IfOperStatus);
+            iflastchangevbs = t.getSubTree(Constant.IfLastChange);
+            ifinboundvbs = t.getSubTree(Constant.IfInBound);
+            ifoutboundvbs = t.getSubTree(Constant.IfOutBound);
+        }catch(IOException e){
+            e.printStackTrace();
         }
-
-        InterFace[] inters = interFaces.toArray(new InterFace[interFaces.size()]);
-        return inters;
+        for(int i = 0 ; i < interfacenum ; i++){
+            InterFace inter = new InterFace();
+            inter.setIndex(ifindexvbs.elementAt(i).toInt());
+            inter.setIfAdminStatus(Status.values()[ifadminstatusvbs.elementAt(i).toInt()]);
+            // 对于ifdescr 需要特别区分是否以Octet的String形式给出
+            String descr = ifdescrvbs.elementAt(i).toString();
+            // TODO: 目前给出的判断方法是看index为2的位置是否是: 如果有更充要的条件，则改之
+            if(descr.charAt(2) == ':')
+                inter.setIfDescr(SnmpServer.octetStr2Readable(descr));
+            else{
+                inter.setIfDescr(descr);
+            }
+            // TODO: 这里应该用时间戳类而不是String
+            inter.setIfLastChange(iflastchangevbs.elementAt(i).toString());
+            inter.setIfMtu(ifmtuvbs.elementAt(i).toInt());
+            inter.setIfOperStatus(Status.values()[ifopestatusvbs.elementAt(i).toInt()]);
+            inter.setIfPhysAddress(ifphysaddressvbs.elementAt(i).toString());
+            inter.setIfSpeed(ifspeedvbs.elementAt(i).toInt());
+            inter.setIfType(IFType.int2Type(iftypevbs.elementAt(i).toInt()));
+            inter.setInBound(ifinboundvbs.elementAt(i).toLong());
+            inter.setOutBound(ifoutboundvbs.elementAt(i).toLong());
+            interFaces[i] = inter;
+        }
+        return interFaces;
     }
 
     @RequestMapping("/getNetwork")
@@ -201,134 +165,84 @@ public class Controller {
         IP[] ips = new IP[4];
         int[] oid = {1, 3, 6, 1, 2, 1, 4, 20, 1, 1};
         SnmpServer t = this.creater.getServer((String)datamap.get("ip"), (String)datamap.get("community"));
-        String[] s = t.walkInfo(oid, false);
+        // TODO: 目前还是不太清楚这个oid下的四个ip地址到底具体含义是什么
+        Vector<Variable> s = t.getBulk(oid);
         for(int i = 0 ; i < 16 ; i++){
             //这里暂定只有四个ip，mib也没有节点指示有几个related ip
             IP ip = new IP();
-            ip.setIpAddress(s[4 * (i / 4)]);
-            ip.setIpIfIndex(s[4 * (i / 4) + 1]);
-            ip.setIpNetMask(s[4 * (i / 4) + 2]);
-            ip.setIpMaxSize(s[4 * (i / 4) + 3]);
+            ip.setIpAddress(s.elementAt(4 * (i / 4)).toString());
+            ip.setIpIfIndex(s.elementAt(4 * (i / 4) + 1).toString());
+            ip.setIpNetMask(s.elementAt(4 * (i / 4) + 2).toString());
+            ip.setIpMaxSize(s.elementAt(4 * (i / 4) + 3).toString());
             ips[i / 4] = ip;
             i = i + 4;
         }
 
         return ips;
     }
-    //终于完成了，但是感觉代码重复太多了，需要重构
+
     @RequestMapping("/getRoutingTable")
     public IPRoute[] getIpRoute(@RequestBody Map datamap){
         SnmpServer t = this.creater.getServer((String)datamap.get("ip"), (String)datamap.get("community"));
-
-        int count = 0;
-        int oid[] = {1, 3, 6, 1, 2, 1, 4, 21, 1, 1};
-        Vector<? extends VariableBinding> vips = t.walkVB(oid, false);
-        String first = new String();
-        for(int i = 0 ; i < vips.size() ; i++){
-            OID tempoid = vips.elementAt(i).getOid();
-            if(i == 0)
-                first = tempoid.toString();
-            if(i != 0 ){
-                tempoid.set(9, 1);
-                if(first.equals(tempoid.toString())) {
-                    count = i;
-                    break;
-                }
-            }
+        Vector<Variable> destvbs = null;
+        Vector<Variable> ifindexvbs = null;
+        Vector<Variable> metric1vbs = null;
+        Vector<Variable> metric2vbs = null;
+        Vector<Variable> metric3vbs = null;
+        Vector<Variable> metric4vbs = null;
+        Vector<Variable> nexthopvbs = null;
+        Vector<Variable> typevbs = null;
+        Vector<Variable> protovbs = null;
+        Vector<Variable> agevbs = null;
+        Vector<Variable> maskvbs = null;
+        Vector<Variable> metric5vbs = null;
+        try{
+            destvbs = t.getSubTree(Constant.IpRouteDest);
+            ifindexvbs = t.getSubTree(Constant.IpRouteIfIndex);
+            metric1vbs = t.getSubTree(Constant.IpRouteMetric1);
+            metric2vbs = t.getSubTree(Constant.IpRouteMetric2);
+            metric3vbs = t.getSubTree(Constant.IpRouteMetric3);
+            metric4vbs = t.getSubTree(Constant.IpRouteMetric4);
+            nexthopvbs = t.getSubTree(Constant.IpRouteNextHop);
+            typevbs = t.getSubTree(Constant.IpRouteType);
+            protovbs = t.getSubTree(Constant.IpRouteProto);
+            agevbs = t.getSubTree(Constant.IpRouteAge);
+            maskvbs = t.getSubTree(Constant.IpRouteMask);
+            metric5vbs = t.getSubTree(Constant.IpRouteMetric5);
+        }catch(IOException e){
+            e.printStackTrace();
+        }
+        IPRoute[] irs = new IPRoute[destvbs.size()];
+        for(int i = 0 ; i < destvbs.size() ; i++){
+            IPRoute ir = new IPRoute();
+            ir.setIpRouteAge(agevbs.elementAt(i).toInt());
+            ir.setIpRouteDest(destvbs.elementAt(i).toString());
+            ir.setIpRouteIfIndex(ifindexvbs.elementAt(i).toInt());
+            ir.setIpRouteMask(maskvbs.elementAt(i).toString());
+            ir.setIpRouteMetric1(metric1vbs.elementAt(i).toInt());
+            ir.setIpRouteMetric2(metric2vbs.elementAt(i).toInt());
+            ir.setIpRouteMetric3(metric3vbs.elementAt(i).toInt());
+            ir.setIpRouteMetric4(metric4vbs.elementAt(i).toInt());
+            ir.setIpRouteMetric5(metric5vbs.elementAt(i).toInt());
+            ir.setIpRouteNextHop(nexthopvbs.elementAt(i).toString());
+            ir.setIpRouteProto(IPRouteProto.int2type(protovbs.elementAt(i).toInt()));
+            ir.setIpRouteType(IPRouteType.int2Type(typevbs.elementAt(i).toInt()));
+            irs[i] = ir;
         }
 
-
-        //上面获得了路由表的长度，接下来根据长度设置路由表项
-        //首先初始化每个项
-        IPRoute[] routes = new IPRoute[count];
-        for(int i = 0 ; i < count ; i++){
-            routes[i] = new IPRoute();
-        }
-        String[] v = t.walkInfo(oid, false);
-        for(int i = 0 ; i < count ; i++){
-            routes[i].setIpRouteDest(v[i]);
-        }
-        //然后是ifindex
-        oid[9] += 1;
-        v = t.walkInfo(oid, false);
-        for(int i = 0 ; i < count ; i++){
-            routes[i].setIpRouteIfIndex(v[i]);
-        }
-        //Metric1
-        oid[9] += 1;
-        v = t.walkInfo(oid, false);
-        for(int i = 0 ; i < count ; i++){
-            routes[i].setIpRouteMetric1(Integer.parseInt(v[i]));
-        }
-        //Metric2
-        oid[9] += 1;
-        v = t.walkInfo(oid, false);
-        for(int i = 0 ; i < count ; i++){
-            routes[i].setIpRouteMetric2(Integer.parseInt(v[i]));
-        }
-        //Metric3
-        oid[9] += 1;
-        v = t.walkInfo(oid, false);
-        for(int i = 0 ; i < count ; i++){
-            routes[i].setIpRouteMetric3(Integer.parseInt(v[i]));
-        }
-        //Metric4
-        oid[9] += 1;
-        v = t.walkInfo(oid, false);
-        for(int i = 0 ; i < count ; i++){
-            routes[i].setIpRouteMetric4(Integer.parseInt(v[i]));
-        }
-        //NextHop
-        oid[9] += 1;
-        v = t.walkInfo(oid, false);
-        for(int i = 0 ; i < count ; i++){
-            routes[i].setIpRouteNextHop(v[i]);
-        }
-        //RouteType
-        oid[9] += 1;
-        v = t.walkInfo(oid, false);
-        for(int i = 0 ; i < count ; i++){
-            routes[i].setIpRouteType(IPRouteType.int2Type(Integer.parseInt(v[i])));
-        }
-
-        //RouteProto
-        oid[9] += 1;
-        v = t.walkInfo(oid, false);
-        for(int i = 0 ; i < count ; i++){
-            routes[i].setIpRouteProto(IPRouteProto.int2type(Integer.parseInt(v[i])));
-        }
-        //RouteAge
-        oid[9] += 1;
-        v = t.walkInfo(oid, false);
-        for(int i = 0 ; i < count ; i++){
-            routes[i].setIpRouteAge(Integer.parseInt(v[i]));
-        }
-        //routeMask
-        oid[9] += 1;
-        v = t.walkInfo(oid, false);
-        for(int i = 0 ; i < count ; i++){
-            routes[i].setIpRouteMask(v[i]);
-        }
-        //RouteMatric5
-        oid[9] += 1;
-        v = t.walkInfo(oid, false);
-        for(int i = 0 ; i < count ; i++){
-            routes[i].setIpRouteMetric5(Integer.parseInt(v[i]));
-        }
-        return routes;
+        return irs;
     }
 
     @RequestMapping("/setAdminStatus")
     public boolean setAdminStatus(@RequestBody Map datamap){
         boolean result = false;
-        /*Map datamap = new HashMap();
-        datamap.put("ip", "127.0.0.1");
-        datamap.put("community", "public");
-        datamap.put("index", 25);
-        datamap.put("status", 0);*/
+        // Map datamap = new HashMap();
+        // datamap.put("ip", "127.0.0.1");
+        // datamap.put("community", "public");
+        // datamap.put("index", 25);
+        // datamap.put("status", 0);
         SnmpServer t = this.creater.getServer((String)datamap.get("ip"), (String)datamap.get("community"));
-        int oid[] = {1, 3, 6, 1, 2, 1, 2, 2, 1, 7, (int)datamap.get("index")};
-        result = t.setStatus(oid, (int)datamap.get("status"));
+        result = t.setStatus((int)datamap.get("index"), (int)datamap.get("status"));
         return result;
     }
 

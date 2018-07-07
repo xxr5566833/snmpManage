@@ -2,7 +2,7 @@ package com.example.demo.snmpServer.Data;
 
 public class IPRoute {
     private String ipRouteDest;
-    private String ipRouteIfIndex;
+    private int ipRouteIfIndex;
     private int ipRouteMetric1;
     private int ipRouteMetric2;
     private int ipRouteMetric3;
@@ -30,11 +30,11 @@ public class IPRoute {
         return ipRouteAge;
     }
 
-    public void setIpRouteIfIndex(String ipRouteIfIndex) {
+    public void setIpRouteIfIndex(int ipRouteIfIndex) {
         this.ipRouteIfIndex = ipRouteIfIndex;
     }
 
-    public String getIpRouteIfIndex() {
+    public int getIpRouteIfIndex() {
         return ipRouteIfIndex;
     }
 

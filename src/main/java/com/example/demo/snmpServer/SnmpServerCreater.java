@@ -13,8 +13,8 @@ public class SnmpServerCreater {
         }
         else {
             t = new SnmpServer(ip, 161, community);
-            Thread thread = new Thread(t);
-            thread.start();
+            // Thread thread = new Thread(t);
+            // thread.start();
             this.Servers.put(ip, t);
         }
         return t;
