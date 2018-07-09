@@ -80,8 +80,21 @@ public class SnmpServer{
         // 默认trap监听162
         //this.initTrapListen(ip, 162);
     }
-    // 获取属于这个oid下的所有子节点，且要求当前子节点就是叶子节点
     public Vector<Variable> getSubTree(int[] oid) throws IOException{
+        OID newoid = new OID(oid);
+        return this.getSubTree(newoid, newoid.size());
+    }
+
+    public Vector<Variable> getSubTree(OID newoid) throws IOException{
+        return this.getSubTree(newoid, newoid.size());
+    }
+    //
+    public Vector<Variable> getSubTree(int[] oid, int leftlength) throws IOException{
+        OID newoid = new OID(oid);
+        return this.getSubTree(newoid, leftlength);
+    }
+    // 获取属于这个oid下的所有子节点，且要求当前子节点就是叶子节点
+    public Vector<Variable> getSubTree(OID oid, int leftlength) throws IOException{
         // 初始化snmp服务器
         // 设置PDU信息
         Vector<Variable> vbs = new Vector<Variable>();
@@ -99,7 +112,7 @@ public class SnmpServer{
                 // 这里假定都是叶子节点，且只获得一个oid
                 VariableBinding recVB = recVBs.elementAt(0);
                 newoid = recVB.getOid();
-                if(newoid.leftMostCompare(oid.length, rootoid) != 0) {
+                if(newoid.leftMostCompare(leftlength, rootoid) != 0) {
                     break;
                 }
                 else{
@@ -111,13 +124,16 @@ public class SnmpServer{
         return vbs;
     }
 
-
-    // 从这个oid开始，顺次获得最大PDU长度的可能的所有节点的信息，可能会获得很多冗余信息
     public Vector<Variable> getBulk(int[] oid){
+        OID newoid = new OID(oid);
+        return this.getBulk(newoid);
+    }
+    // 从这个oid开始，顺次获得最大PDU长度的可能的所有节点的信息，可能会获得很多冗余信息
+    public Vector<Variable> getBulk(OID oid){
         // get PDU
         Vector<Variable> vbs = new Vector<Variable>();
         PDU pdu = new PDU();
-        pdu.add(new VariableBinding(new OID(oid)));
+        pdu.add(new VariableBinding(oid));
         pdu.setType(PDU.GETBULK);
         pdu.setMaxRepetitions(1000);
         ResponseEvent respEvnt = null;
@@ -146,11 +162,14 @@ public class SnmpServer{
 
     }
 
-
-    // 获得这个oid 所对应的节点的值，注意这里假定这个oid就是某个子树节点
     public Variable getTreeNode(int[] oid) throws IOException{
+        OID newoid = new OID(oid);
+        return this.getTreeNode(newoid);
+    }
+    // 获得这个oid 所对应的节点的值，注意这里假定这个oid就是某个子树节点
+    public Variable getTreeNode(OID oid) throws IOException{
         PDU pdu = new PDU();
-        pdu.add(new VariableBinding(new OID(oid)));
+        pdu.add(new VariableBinding(oid));
         pdu.setType(PDU.GET);
         ResponseEvent respEvnt = sendPDU(pdu);
         System.out.println(respEvnt.getResponse());
@@ -310,4 +329,26 @@ public class SnmpServer{
         }
         return sys;
     }
+
+    // 获得vlan的开始index
+    public int getVlanBegin(){
+        Vector<Variable> vbs = null;
+        try
+        {
+            vbs = this.getSubTree(Constant.IfDescr);
+        }catch(IOException e){
+            e.printStackTrace();
+        }
+        for(int i = 0 ; i < vbs.size() ; i++){
+            String descr = vbs.elementAt(i).toString();
+            if(descr.charAt(2) == ':'){
+                descr = octetStr2Readable(descr);
+            }
+            if(descr.substring(0, 4).equals("Vlan")) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
 }

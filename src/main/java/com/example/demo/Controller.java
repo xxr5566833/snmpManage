@@ -31,17 +31,74 @@ public class Controller {
     private static SnmpServerCreater creater = new SnmpServerCreater();
 
     @RequestMapping("/test")
-    public SysInfo test (){
-        SnmpServer t = creater.getServer("192.168.2.1", "public");
-        int[] oid = {1, 3, 6, 1, 2, 1, 4, 99, 1, 1};
-        SysInfo sys = null;
+    public InterFace[] test (){
+        SnmpServer t = creater.getServer("192.168.2.2", "public");
+        int vlanbeginindex = t.getVlanBegin();
+        Vector<Variable> ifdescrvbs = null;
+        Vector<Variable> ifindexvbs = null;
+        Vector<Variable> iftypevbs = null;
+        Vector<Variable> ifmtuvbs = null;
+        Vector<Variable> ifspeedvbs = null;
+        Vector<Variable> ifphysaddressvbs = null;
+        Vector<Variable> ifadminstatusvbs = null;
+        Vector<Variable> iflastchangevbs = null;
+        Vector<Variable> ifopestatusvbs = null;
+        Vector<Variable> ifinboundvbs = null;
+        Vector<Variable> ifoutboundvbs = null;
+        // 得到接口数量后，开始获取每一组信息
         try {
-            sys = t.getSysInfo();
-        }catch(Exception e){
+            OID descroid = new OID(Constant.IfDescr).append(vlanbeginindex);
+            int leftlength = descroid.size() - 1;
+            ifdescrvbs = t.getSubTree(descroid, leftlength);
+            OID indexoid = new OID(Constant.IfIndex).append(vlanbeginindex);
+            ifindexvbs = t.getSubTree(indexoid, leftlength);
+            OID typeoid = new OID(Constant.IfType).append(vlanbeginindex);
+            iftypevbs = t.getSubTree(typeoid, leftlength);
+            OID mtuoid = new OID(Constant.IfMtu).append(vlanbeginindex);
+            ifmtuvbs = t.getSubTree(mtuoid, leftlength);
+            OID speedoid = new OID(Constant.IfSpeed).append(vlanbeginindex);
+            ifspeedvbs = t.getSubTree(speedoid, leftlength);
+            OID phyoid = new OID(Constant.IfPhysAddress).append(vlanbeginindex);
+            ifphysaddressvbs = t.getSubTree(phyoid, leftlength);
+            OID adminoid = new OID(Constant.IfAdminStatus).append(vlanbeginindex);
+            ifadminstatusvbs = t.getSubTree(adminoid, leftlength);
+            OID operoid = new OID(Constant.IfOperStatus).append(vlanbeginindex);
+            ifopestatusvbs = t.getSubTree(operoid, leftlength);
+            OID lastchangeoid = new OID(Constant.IfLastChange).append(vlanbeginindex);
+            iflastchangevbs = t.getSubTree(lastchangeoid, leftlength);
+            OID inboundoid = new OID(Constant.IfInBound).append(vlanbeginindex);
+            ifinboundvbs = t.getSubTree(inboundoid, leftlength);
+            OID outboundoid = new OID(Constant.IfOutBound).append(vlanbeginindex);
+            ifoutboundvbs = t.getSubTree(outboundoid, leftlength);
+        }catch(IOException e){
             e.printStackTrace();
         }
+        InterFace[] vlans = new Vlan[ifdescrvbs.size()];
+        for(int i = 0 ; i < ifdescrvbs.size() ; i++){
+            InterFace inter = new Vlan();
+            inter.setIndex(ifindexvbs.elementAt(i).toInt());
+            inter.setIfAdminStatus(Status.values()[ifadminstatusvbs.elementAt(i).toInt()]);
+            // 对于ifdescr 需要特别区分是否以Octet的String形式给出
+            String descr = ifdescrvbs.elementAt(i).toString();
+            // TODO: 目前给出的判断方法是看index为2的位置是否是: 如果有更充要的条件，则改之
+            if(descr.charAt(2) == ':')
+                inter.setIfDescr(SnmpServer.octetStr2Readable(descr));
+            else{
+                inter.setIfDescr(descr);
+            }
+            // TODO: 这里应该用时间戳类而不是String
+            inter.setIfLastChange(iflastchangevbs.elementAt(i).toString());
+            inter.setIfMtu(ifmtuvbs.elementAt(i).toInt());
+            inter.setIfOperStatus(Status.values()[ifopestatusvbs.elementAt(i).toInt()]);
+            inter.setIfPhysAddress(ifphysaddressvbs.elementAt(i).toString());
+            inter.setIfSpeed(ifspeedvbs.elementAt(i).toInt());
+            inter.setIfType(IFType.int2Type(iftypevbs.elementAt(i).toInt()));
+            inter.setInBound(ifinboundvbs.elementAt(i).toLong());
+            inter.setOutBound(ifoutboundvbs.elementAt(i).toLong());
+            vlans[i] = inter;
+        }
+        return vlans;
 
-        return sys;
 
 
     }
@@ -99,12 +156,80 @@ public class Controller {
         SnmpServer t = this.creater.getServer(ip, community);
         return t.getSysInfo();
     }
-
+    @RequestMapping("/getVlan")
+    public InterFace[] getVlans(@RequestBody Map datamap){
+        SnmpServer t = creater.getServer((String)datamap.get("ip"), (String)datamap.get("community"));
+        int vlanbeginindex = t.getVlanBegin();
+        Vector<Variable> ifdescrvbs = null;
+        Vector<Variable> ifindexvbs = null;
+        Vector<Variable> iftypevbs = null;
+        Vector<Variable> ifmtuvbs = null;
+        Vector<Variable> ifspeedvbs = null;
+        Vector<Variable> ifphysaddressvbs = null;
+        Vector<Variable> ifadminstatusvbs = null;
+        Vector<Variable> iflastchangevbs = null;
+        Vector<Variable> ifopestatusvbs = null;
+        Vector<Variable> ifinboundvbs = null;
+        Vector<Variable> ifoutboundvbs = null;
+        // 得到接口数量后，开始获取每一组信息
+        try {
+            OID descroid = new OID(Constant.IfDescr).append(vlanbeginindex);
+            int leftlength = descroid.size() - 1;
+            ifdescrvbs = t.getSubTree(descroid, leftlength);
+            OID indexoid = new OID(Constant.IfIndex).append(vlanbeginindex);
+            ifindexvbs = t.getSubTree(indexoid, leftlength);
+            OID typeoid = new OID(Constant.IfType).append(vlanbeginindex);
+            iftypevbs = t.getSubTree(typeoid, leftlength);
+            OID mtuoid = new OID(Constant.IfMtu).append(vlanbeginindex);
+            ifmtuvbs = t.getSubTree(mtuoid, leftlength);
+            OID speedoid = new OID(Constant.IfSpeed).append(vlanbeginindex);
+            ifspeedvbs = t.getSubTree(speedoid, leftlength);
+            OID phyoid = new OID(Constant.IfPhysAddress).append(vlanbeginindex);
+            ifphysaddressvbs = t.getSubTree(phyoid, leftlength);
+            OID adminoid = new OID(Constant.IfAdminStatus).append(vlanbeginindex);
+            ifadminstatusvbs = t.getSubTree(adminoid, leftlength);
+            OID operoid = new OID(Constant.IfOperStatus).append(vlanbeginindex);
+            ifopestatusvbs = t.getSubTree(operoid, leftlength);
+            OID lastchangeoid = new OID(Constant.IfLastChange).append(vlanbeginindex);
+            iflastchangevbs = t.getSubTree(lastchangeoid, leftlength);
+            OID inboundoid = new OID(Constant.IfInBound).append(vlanbeginindex);
+            ifinboundvbs = t.getSubTree(inboundoid, leftlength);
+            OID outboundoid = new OID(Constant.IfOutBound).append(vlanbeginindex);
+            ifoutboundvbs = t.getSubTree(outboundoid, leftlength);
+        }catch(IOException e){
+            e.printStackTrace();
+        }
+        InterFace[] vlans = new Vlan[ifdescrvbs.size()];
+        for(int i = 0 ; i < ifdescrvbs.size() ; i++){
+            InterFace inter = new Vlan();
+            inter.setIndex(ifindexvbs.elementAt(i).toInt());
+            inter.setIfAdminStatus(Status.values()[ifadminstatusvbs.elementAt(i).toInt()]);
+            // 对于ifdescr 需要特别区分是否以Octet的String形式给出
+            String descr = ifdescrvbs.elementAt(i).toString();
+            // TODO: 目前给出的判断方法是看index为2的位置是否是: 如果有更充要的条件，则改之
+            if(descr.charAt(2) == ':')
+                inter.setIfDescr(SnmpServer.octetStr2Readable(descr));
+            else{
+                inter.setIfDescr(descr);
+            }
+            // TODO: 这里应该用时间戳类而不是String
+            inter.setIfLastChange(iflastchangevbs.elementAt(i).toString());
+            inter.setIfMtu(ifmtuvbs.elementAt(i).toInt());
+            inter.setIfOperStatus(Status.values()[ifopestatusvbs.elementAt(i).toInt()]);
+            inter.setIfPhysAddress(ifphysaddressvbs.elementAt(i).toString());
+            inter.setIfSpeed(ifspeedvbs.elementAt(i).toInt());
+            inter.setIfType(IFType.int2Type(iftypevbs.elementAt(i).toInt()));
+            inter.setInBound(ifinboundvbs.elementAt(i).toLong());
+            inter.setOutBound(ifoutboundvbs.elementAt(i).toLong());
+            vlans[i] = inter;
+        }
+        return vlans;
+    }
     //完成，不过速度有点慢，之后调用getBulk看能不能改善这个情况
     @RequestMapping("/getInterface")
     public InterFace[] getInterfaces(@RequestBody Map datamap){
         //获取设备的接口情况,获取oid为9以前的情况
-        SnmpServer t = this.creater.getServer((String)datamap.get("ip"), (String)datamap.get("community"));
+        SnmpServer t = creater.getServer((String)datamap.get("ip"), (String)datamap.get("community"));
         int interfacenum = t.getInterfaceNum();
         InterFace[] interFaces = new InterFace[interfacenum];
         Vector<Variable> ifdescrvbs = null;
