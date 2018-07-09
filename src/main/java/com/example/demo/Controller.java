@@ -361,6 +361,7 @@ public class Controller {
     @RequestMapping("/setAdminStatus")
     public boolean setAdminStatus(@RequestBody Map datamap){
         boolean result = false;
+        System.out.println("changing interface");
         // Map datamap = new HashMap();
         // datamap.put("ip", "127.0.0.1");
         // datamap.put("community", "public");

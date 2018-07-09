@@ -12,4 +12,7 @@ public enum IPRouteType {
     public static IPRouteType int2Type(int type){
         return IPRouteType.values()[type - 1];
     }
+    public int getType(){
+        return type;
+    }
 }

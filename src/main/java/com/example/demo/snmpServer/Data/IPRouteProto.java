@@ -2,7 +2,7 @@ package com.example.demo.snmpServer.Data;
 
 public enum IPRouteProto {
     other(1),
-    local(2),
+    direct(2),
     netmgmt(3),
     icmp(4),
     egp(5),
