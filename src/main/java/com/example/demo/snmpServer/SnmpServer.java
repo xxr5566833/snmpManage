@@ -188,11 +188,14 @@ public class SnmpServer{
         return null;
     }
 
-
     public ResponseEvent sendPDU(PDU pdu) throws IOException {
+        return this.sendPDU(pdu, "public");
+    }
+
+    public ResponseEvent sendPDU(PDU pdu, String community) throws IOException {
         // 设置 target
         CommunityTarget target = new CommunityTarget();
-        target.setCommunity(new OctetString(this.community));
+        target.setCommunity(new OctetString(community));
         target.setAddress(targetAddress);
         // 通信不成功时的重试次数
         target.setRetries(2);
@@ -218,7 +221,12 @@ public class SnmpServer{
         pdu.setType(PDU.SET);
         System.out.println(pdu);
         try{
-            sendPDU(pdu);
+            sendPDU(pdu, "private");
+        }catch(Exception e){
+            e.printStackTrace();
+        }
+        try {
+            Thread.sleep(1000);
         }catch(Exception e){
             e.printStackTrace();
         }
