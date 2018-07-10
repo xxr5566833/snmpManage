@@ -3,15 +3,19 @@ package com.example.demo.Graph;
 import com.example.demo.snmpServer.Data.IP;
 import com.sun.security.auth.X500Principal;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Vector;
 
 public class Graph {
     public Vector<Node> nodes;
     public Vector<Vector<Edge>> edges;
+    public Map ip2Node ;
 
     public Graph(){
         nodes = new Vector<Node>();
         edges = new Vector<Vector<Edge>>();
+        ip2Node = new HashMap();
     }
 
     public int getNodeNum(){
@@ -20,14 +24,22 @@ public class Graph {
 
     public void addNode(Node n){
         nodes.add(n);
+        if(n.getType() == NodeType.gateway){
+            for(IP ip : n.getIps()){
+                ip2Node.put(ip.getIpAddress(), n);
+            }
+        }
+        else{
+            ip2Node.put(n.getMainIp(), n);
+        }
         edges.add(new Vector<Edge>());
     }
 
     public boolean isSameSubnet(String ip, String subnet, String mask){
-        String[] ips = ip.split(".");
-        String[] masks = mask.split(".");
+        String[] ips = ip.split("\\.");
+        String[] masks = mask.split("\\.");
         String[] newips = new String[4];
-        String[] subnets = subnet.split(".");
+        String[] subnets = subnet.split("\\.");
         String[] newsubnets = new String[4];
         for(int i = 0 ; i < 4 ; i++){
             int sub = Integer.parseInt(ips[i]) & Integer.parseInt(masks[i]);
@@ -40,11 +52,26 @@ public class Graph {
         return newsubnet.equals(newip);
     }
 
+
+    public Node ipToNode(String ip){
+        return (Node)this.ip2Node.get(ip);
+    }
+
+    public boolean isConnected(int i, int j){
+        Vector<Edge> edges = this.edges.elementAt(i);
+        for(Edge e : edges){
+            if(e.getDestIndex() == j){
+                return true;
+            }
+        }
+        return false;
+    }
+
     public boolean isRepeated(String ip){
         for(Node n : nodes){
             Vector<IP> ips = n.getIps();
             for(IP oneip : ips){
-                if(oneip.getIpAddress().equals(ip) || ip.substring(0, 3).equals("127") || ip.equals("0.0.0.0")){
+                if(oneip.getIpAddress().equals(ip)){
                     return true;
                 }
             }

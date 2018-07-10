@@ -25,12 +25,12 @@ public class GraphCreator {
 
     private static void dfs(Node n, Graph graph){
 
-        SnmpServer t = SnmpServerCreater.getServer(n.getMainIp());
         // 现在需要通过snmp服务器获得一些信息
         // 类型
         if(n.getType() != NodeType.gateway)
             // 非网关不需要继续深度遍历
             return ;
+        SnmpServer t = SnmpServerCreater.getServer(n.getMainIp());
         DeviceType type = t.getDeviceType();
         if(n.getType() == NodeType.other)
             n.setType(type == DeviceType.router ? NodeType.gateway : NodeType.subnet);
@@ -46,35 +46,32 @@ public class GraphCreator {
             if(ipr.getIpRouteType() == IPRouteType.direct) {
                 // 直接相连还要分情况
                 String nexthop = ipr.getIpRouteNextHop();
-                if(nexthop.equals("255.255.255.255")){
-                    if (!graph.isRepeated(nexthop)) {
-                        // IP地址不重复，那么相当于发现新设备
-                        Node newn = new Node(nexthop, graph.getNodeNum());
-                        newn.setType(NodeType.gateway);
+                if(nexthop.equals("127.0.0.1") || nexthop.equals("0.0.0.0"))
+                    continue;
+                if(!graph.isRepeated(ipr.getIpRouteDest())){
+                    if(ipr.getIpRouteMask().equals("255.255.255.255") ){
+                        // 说明可能有直连路由器，那么此时需要检验dest的合法性
+                        if(!IP.isAllOne(ipr.getIpRouteDest(), ipr.getIpRouteMask())) {
+                            Node newn = new Node(ipr.getIpRouteDest(), NodeType.gateway, graph.getNodeNum());
+                            graph.addNode(newn);
+                            graph.addEdge(n.getIndex(), newn.getIndex());
+                            graph.addEdge(newn.getIndex(), n.getIndex());
+                        }
+                    }
+                    else {
+                        // 说明是子网，因为子网号不可能为全1
+                        Node newn = new Node(ipr.getIpRouteDest(), NodeType.subnet, graph.getNodeNum());
                         graph.addNode(newn);
                         graph.addEdge(n.getIndex(), newn.getIndex());
                         graph.addEdge(newn.getIndex(), n.getIndex());
                     }
                 }
-                else{
-                    String destip = ipr.getIpRouteDest();
-                    if (!graph.isRepeated(destip)) {
-                        // IP地址不重复，那么相当于发现新设备
-                        Node newn = new Node(destip, graph.getNodeNum());
-                        newn.setType(NodeType.subnet);
-                        graph.addNode(newn);
-                        graph.addEdge(n.getIndex(), newn.getIndex());
-                        graph.addEdge(newn.getIndex(), n.getIndex());
-                    }
-                }
-
             }
             else{
                 String nexthop = ipr.getIpRouteNextHop();
                 if (!graph.isRepeated(nexthop)) {
                     // IP地址不重复，那么相当于发现新设备
-                    Node newn = new Node(nexthop, graph.getNodeNum());
-                    newn.setType(NodeType.gateway);
+                    Node newn = new Node(nexthop, NodeType.gateway graph.getNodeNum());
                     graph.addNode(newn);
                     graph.addEdge(n.getIndex(), newn.getIndex());
                     graph.addEdge(newn.getIndex(), n.getIndex());

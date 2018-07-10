@@ -10,11 +10,11 @@ public class Node {
     public NodeType type;
     public NodeStatus status;
     public int index;
-    public Node(String mainip, int index){
+    public Node(String mainip, NodeType type, int index){
         this.mainIp = mainip;
         this.status = NodeStatus.undiscovered;
         this.ips = new Vector<IP>();
-        this.type = NodeType.other;
+        this.type = type;
         this.index = index;
     }
 
