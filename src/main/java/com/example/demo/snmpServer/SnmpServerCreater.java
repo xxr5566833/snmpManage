@@ -5,14 +5,14 @@ import java.util.Map;
 
 public class SnmpServerCreater {
     private Map Servers = new HashMap();
-    public synchronized SnmpServer getServer(String ip, String community){
+    public synchronized SnmpServer getServer(String ip, String readcommunity, String writecommunity){
         SnmpServer t = null;
 
         if(this.Servers.containsKey(ip)){
             t = (SnmpServer) this.Servers.get(ip);
         }
         else {
-            t = new SnmpServer(ip, 161, community);
+            t = new SnmpServer(ip, 161, readcommunity,writecommunity);
             // Thread thread = new Thread(t);
             // thread.start();
             this.Servers.put(ip, t);

@@ -18,7 +18,8 @@ import javax.xml.ws.Response;
 public class SnmpServer{
     private Snmp snmp = null;
     private Address targetAddress = null;
-    private String community;
+    private String readcommunity;
+    private String writecommunity;
     private TransportMapping trapTransport;
     private Snmp trapSnmp;
     public void initTrapListen(String ip, int port){
@@ -65,10 +66,11 @@ public class SnmpServer{
     }
 
 
-    public SnmpServer(String ip, int port, String community) {
+    public SnmpServer(String ip, int port, String readcommunity, String writecommunity) {
         // 设置Agent方的IP和端口
         targetAddress = GenericAddress.parse("udp:"+ ip + "/" + port);
-        this.community = community;
+        this.readcommunity = readcommunity;
+        this.writecommunity = writecommunity;
         try {
             TransportMapping transport = new DefaultUdpTransportMapping();
             snmp = new Snmp(transport);
@@ -80,31 +82,31 @@ public class SnmpServer{
         // 默认trap监听162
         //this.initTrapListen(ip, 162);
     }
-    public Vector<Variable> getSubTree(int[] oid) throws IOException{
+    public Vector<VariableBinding> getSubTree(int[] oid) throws IOException{
         OID newoid = new OID(oid);
         return this.getSubTree(newoid, newoid.size());
     }
 
-    public Vector<Variable> getSubTree(OID newoid) throws IOException{
+    public Vector<VariableBinding> getSubTree(OID newoid) throws IOException{
         return this.getSubTree(newoid, newoid.size());
     }
     //
-    public Vector<Variable> getSubTree(int[] oid, int leftlength) throws IOException{
+    public Vector<VariableBinding> getSubTree(int[] oid, int leftlength) throws IOException{
         OID newoid = new OID(oid);
         return this.getSubTree(newoid, leftlength);
     }
     // 获取属于这个oid下的所有子节点，且要求当前子节点就是叶子节点
-    public Vector<Variable> getSubTree(OID oid, int leftlength) throws IOException{
+    public Vector<VariableBinding> getSubTree(OID oid, int leftlength) throws IOException{
         // 初始化snmp服务器
         // 设置PDU信息
-        Vector<Variable> vbs = new Vector<Variable>();
+        Vector<VariableBinding> vbs = new Vector<VariableBinding>();
         OID rootoid = new OID(oid);
         OID newoid = new OID(oid);
         while(true){
             PDU pdu = new PDU();
             pdu.add(new VariableBinding(newoid));
             pdu.setType(PDU.GETNEXT);
-            ResponseEvent respEvnt = sendPDU(pdu);
+            ResponseEvent respEvnt = sendPDU(pdu,readcommunity);
             // System.out.println(respEvnt.getResponse());
             if (respEvnt != null && respEvnt.getResponse() != null) {
                 Vector<? extends VariableBinding> recVBs = respEvnt.getResponse()
@@ -116,7 +118,7 @@ public class SnmpServer{
                     break;
                 }
                 else{
-                    vbs.add(recVB.getVariable());
+                    vbs.add(recVB);
                     System.out.println(respEvnt.getResponse());
                 }
             }
@@ -124,21 +126,21 @@ public class SnmpServer{
         return vbs;
     }
 
-    public Vector<Variable> getBulk(int[] oid){
+    public Vector<VariableBinding> getBulk(int[] oid){
         OID newoid = new OID(oid);
         return this.getBulk(newoid);
     }
     // 从这个oid开始，顺次获得最大PDU长度的可能的所有节点的信息，可能会获得很多冗余信息
-    public Vector<Variable> getBulk(OID oid){
+    public Vector<VariableBinding> getBulk(OID oid){
         // get PDU
-        Vector<Variable> vbs = new Vector<Variable>();
+        Vector<VariableBinding> vbs = new Vector<VariableBinding>();
         PDU pdu = new PDU();
         pdu.add(new VariableBinding(oid));
         pdu.setType(PDU.GETBULK);
         pdu.setMaxRepetitions(1000);
         ResponseEvent respEvnt = null;
         try {
-            respEvnt = sendPDU(pdu);
+            respEvnt = sendPDU(pdu,readcommunity);
         }catch(Exception e){
             e.printStackTrace();
         }
@@ -146,9 +148,7 @@ public class SnmpServer{
         if (respEvnt != null && respEvnt.getResponse() != null) {
             Vector<? extends VariableBinding> recVBs = respEvnt.getResponse()
                     .getVariableBindings();
-            for (int i = 0; i < recVBs.size(); i++) {
-                vbs.add(recVBs.elementAt(i).getVariable());
-            }
+            vbs.addAll(recVBs);
         }
         return vbs;
     }
@@ -162,21 +162,21 @@ public class SnmpServer{
 
     }
 
-    public Variable getTreeNode(int[] oid) throws IOException{
+    public VariableBinding getTreeNode(int[] oid) throws IOException{
         OID newoid = new OID(oid);
         return this.getTreeNode(newoid);
     }
     // 获得这个oid 所对应的节点的值，注意这里假定这个oid就是某个子树节点
-    public Variable getTreeNode(OID oid) throws IOException{
+    public VariableBinding getTreeNode(OID oid) throws IOException{
         PDU pdu = new PDU();
         pdu.add(new VariableBinding(oid));
         pdu.setType(PDU.GET);
-        ResponseEvent respEvnt = sendPDU(pdu);
+        ResponseEvent respEvnt = sendPDU(pdu,readcommunity);
         System.out.println(respEvnt.getResponse());
         if (respEvnt != null && respEvnt.getResponse() != null) {
             Vector<? extends VariableBinding> recVBs = respEvnt.getResponse()
                     .getVariableBindings();
-            return recVBs.elementAt(0).getVariable();
+            return recVBs.elementAt(0);
                 /*//有些需要转换，但是有些不必转化比如mac地址
                 if(recVB.getSyntax() == 4 && transflag && recVB.getVariable().toString().charAt(2) == ':'){
                     v[i] = octetStr2Readable(recVB.getVariable().toString());
@@ -189,10 +189,10 @@ public class SnmpServer{
     }
 
 
-    public ResponseEvent sendPDU(PDU pdu) throws IOException {
+    public ResponseEvent sendPDU(PDU pdu,String community) throws IOException {
         // 设置 target
         CommunityTarget target = new CommunityTarget();
-        target.setCommunity(new OctetString(this.community));
+        target.setCommunity(new OctetString(community));
         target.setAddress(targetAddress);
         // 通信不成功时的重试次数
         target.setRetries(2);
@@ -218,7 +218,7 @@ public class SnmpServer{
         pdu.setType(PDU.SET);
         System.out.println(pdu);
         try{
-            sendPDU(pdu);
+            sendPDU(pdu,writecommunity);
         }catch(Exception e){
             e.printStackTrace();
         }
@@ -226,7 +226,7 @@ public class SnmpServer{
         pdu.add(new VariableBinding(new OID(Constant.IfOperStatus).append(index)));
         pdu.setType(PDU.GET);
         try {
-            respEvnt = sendPDU(pdu);
+            respEvnt = sendPDU(pdu,readcommunity);
         }catch (IOException e){
             e.printStackTrace();
         }
@@ -290,7 +290,7 @@ public class SnmpServer{
     public int getInterfaceNum(){
         Variable v = null;
         try{
-            v = this.getTreeNode(Constant.IfNum);
+            v = this.getTreeNode(Constant.IfNum).getVariable();
         }catch(IOException e){
             e.printStackTrace();
         }
@@ -299,7 +299,7 @@ public class SnmpServer{
 
     // 获得接口的String状态表示
     public String[] getInterfacesStatus(){
-        Vector<Variable> status = null;
+        Vector<VariableBinding> status = null;
         try{
             status = this.getSubTree(Constant.IfOperStatus);
         }catch(IOException e){
@@ -308,7 +308,7 @@ public class SnmpServer{
         String[] result = new String[status.size()];
         for(int i = 0 ; i < status.size() ; i++){
             //TODO 根据rfc标准，这里应该有三种状态
-            result[i] = status.elementAt(i).toInt() == 1 ? "UP" : "DOWN";
+            result[i] = status.elementAt(i).getVariable().toInt() == 1 ? "UP" : "DOWN";
         }
         return result;
     }
@@ -318,12 +318,12 @@ public class SnmpServer{
         // 还得一个一个获取
         SysInfo sys = new SysInfo();
         try {
-            sys.setSysDescr(this.getTreeNode(Constant.SysDescr).toString());
-            sys.setSysContact(this.getTreeNode(Constant.SysContact).toString());
-            sys.setSysLocation(this.getTreeNode(Constant.SysLocation).toString());
-            sys.setSysName(this.getTreeNode(Constant.SysName).toString());
-            sys.setSysObjectId(this.getTreeNode(Constant.SysObjectId).toString());
-            sys.setSysUpTime(this.getTreeNode(Constant.SysUpTime));
+            sys.setSysDescr(this.getTreeNode(Constant.SysDescr).getVariable().toString());
+            sys.setSysContact(this.getTreeNode(Constant.SysContact).getVariable().toString());
+            sys.setSysLocation(this.getTreeNode(Constant.SysLocation).getVariable().toString());
+            sys.setSysName(this.getTreeNode(Constant.SysName).getVariable().toString());
+            sys.setSysObjectId(this.getTreeNode(Constant.SysObjectId).getVariable().toString());
+            sys.setSysUpTime(this.getTreeNode(Constant.SysUpTime).getVariable());
         }catch(IOException e){
             e.printStackTrace();
         }
@@ -332,7 +332,7 @@ public class SnmpServer{
 
     // 获得vlan的开始index
     public int getVlanBegin(){
-        Vector<Variable> vbs = null;
+        Vector<VariableBinding> vbs = null;
         try
         {
             vbs = this.getSubTree(Constant.IfDescr);
@@ -340,12 +340,13 @@ public class SnmpServer{
             e.printStackTrace();
         }
         for(int i = 0 ; i < vbs.size() ; i++){
-            String descr = vbs.elementAt(i).toString();
-            if(descr.charAt(2) == ':'){
+            String descr = vbs.elementAt(i).getVariable().toString();
+            if(descr.length() >= 3 && descr.charAt(2) == ':'){
                 descr = octetStr2Readable(descr);
             }
-            if(descr.substring(0, 4).equals("Vlan")) {
-                return i;
+            if(descr.length() >= 4 && descr.substring(0, 4).equals("Vlan")) {
+                System.out.println(descr);
+                return vbs.elementAt(i).getOid().last() - 1;
             }
         }
         return -1;
