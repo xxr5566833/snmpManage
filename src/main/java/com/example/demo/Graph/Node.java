@@ -6,15 +6,15 @@ import java.util.Vector;
 
 public class Node {
     public Vector<IP> ips;
+    public String mainIp;
     public NodeType type;
-    public String mask;
     public NodeStatus status;
     public int index;
-    public Node(Vector<IP> ips, String mask, NodeType type, int index){
-        this.ips = ips;
-        this.mask = mask;
-        this.type = type;
+    public Node(String mainip, int index){
+        this.mainIp = mainip;
         this.status = NodeStatus.undiscovered;
+        this.ips = new Vector<IP>();
+        this.type = NodeType.other;
         this.index = index;
     }
 
@@ -30,13 +30,6 @@ public class Node {
         this.type = type;
     }
 
-    public String getMask() {
-        return mask;
-    }
-
-    public void setMask(String mask) {
-        this.mask = mask;
-    }
 
     public void setStatus(NodeStatus status) {
         this.status = status;
@@ -50,6 +43,15 @@ public class Node {
         this.ips = ips;
     }
 
+    public Vector<IP> getIps() {
+        return ips;
+    }
 
+    public String getMainIp() {
+        return mainIp;
+    }
 
+    public void setMainIp(String mainIp) {
+        this.mainIp = mainIp;
+    }
 }

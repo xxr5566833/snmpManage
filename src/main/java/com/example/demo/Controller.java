@@ -1,6 +1,7 @@
 package com.example.demo;
 
 
+import com.example.demo.Graph.GraphCreator;
 import com.example.demo.snmpServer.Data.*;
 import com.example.demo.snmpServer.SnmpServer;
 import com.example.demo.snmpServer.SnmpServerCreater;
@@ -28,76 +29,9 @@ public class Controller {
     private static SnmpServerCreater creater = new SnmpServerCreater();
 
     @RequestMapping("/test")
-    public InterFace[] test (){
+    public void test (){
         SnmpServer t = creater.getServer("192.168.2.2", "public","private");
-        int vlanbeginindex = t.getVlanBegin();
-        Vector<VariableBinding> ifdescrvbs = null;
-        Vector<VariableBinding> ifindexvbs = null;
-        Vector<VariableBinding> iftypevbs = null;
-        Vector<VariableBinding> ifmtuvbs = null;
-        Vector<VariableBinding> ifspeedvbs = null;
-        Vector<VariableBinding> ifphysaddressvbs = null;
-        Vector<VariableBinding> ifadminstatusvbs = null;
-        Vector<VariableBinding> iflastchangevbs = null;
-        Vector<VariableBinding> ifopestatusvbs = null;
-        Vector<VariableBinding> ifinboundvbs = null;
-        Vector<VariableBinding> ifoutboundvbs = null;
-        // 得到接口数量后，开始获取每一组信息
-        try {
-            OID descroid = new OID(Constant.IfDescr).append(vlanbeginindex);
-            int leftlength = descroid.size() - 1;
-            ifdescrvbs = t.getSubTree(descroid, leftlength);
-            OID indexoid = new OID(Constant.IfIndex).append(vlanbeginindex);
-            ifindexvbs = t.getSubTree(indexoid, leftlength);
-            OID typeoid = new OID(Constant.IfType).append(vlanbeginindex);
-            iftypevbs = t.getSubTree(typeoid, leftlength);
-            OID mtuoid = new OID(Constant.IfMtu).append(vlanbeginindex);
-            ifmtuvbs = t.getSubTree(mtuoid, leftlength);
-            OID speedoid = new OID(Constant.IfSpeed).append(vlanbeginindex);
-            ifspeedvbs = t.getSubTree(speedoid, leftlength);
-            OID phyoid = new OID(Constant.IfPhysAddress).append(vlanbeginindex);
-            ifphysaddressvbs = t.getSubTree(phyoid, leftlength);
-            OID adminoid = new OID(Constant.IfAdminStatus).append(vlanbeginindex);
-            ifadminstatusvbs = t.getSubTree(adminoid, leftlength);
-            OID operoid = new OID(Constant.IfOperStatus).append(vlanbeginindex);
-            ifopestatusvbs = t.getSubTree(operoid, leftlength);
-            OID lastchangeoid = new OID(Constant.IfLastChange).append(vlanbeginindex);
-            iflastchangevbs = t.getSubTree(lastchangeoid, leftlength);
-            OID inboundoid = new OID(Constant.IfInBound).append(vlanbeginindex);
-            ifinboundvbs = t.getSubTree(inboundoid, leftlength);
-            OID outboundoid = new OID(Constant.IfOutBound).append(vlanbeginindex);
-            ifoutboundvbs = t.getSubTree(outboundoid, leftlength);
-        }catch(IOException e){
-            e.printStackTrace();
-        }
-        InterFace[] vlans = new Vlan[ifdescrvbs.size()];
-        for(int i = 0 ; i < ifdescrvbs.size() ; i++){
-            InterFace inter = new Vlan();
-            inter.setIndex(ifindexvbs.elementAt(i).getVariable().toInt());
-            inter.setIfAdminStatus(Status.values()[ifadminstatusvbs.elementAt(i).getVariable().toInt()]);
-            // 对于ifdescr 需要特别区分是否以Octet的String形式给出
-            String descr = ifdescrvbs.elementAt(i).getVariable().toString();
-            // TODO: 目前给出的判断方法是看index为2的位置是否是: 如果有更充要的条件，则改之
-            if(descr.charAt(2) == ':')
-                inter.setIfDescr(SnmpServer.octetStr2Readable(descr));
-            else{
-                inter.setIfDescr(descr);
-            }
-            // TODO: 这里应该用时间戳类而不是String
-            inter.setIfLastChange(iflastchangevbs.elementAt(i).getVariable().toString());
-            inter.setIfMtu(ifmtuvbs.elementAt(i).getVariable().toInt());
-            inter.setIfOperStatus(Status.values()[ifopestatusvbs.elementAt(i).getVariable().toInt()]);
-            inter.setIfPhysAddress(ifphysaddressvbs.elementAt(i).getVariable().toString());
-            inter.setIfSpeed(ifspeedvbs.elementAt(i).getVariable().toInt());
-            inter.setIfType(IFType.int2Type(iftypevbs.elementAt(i).getVariable().toInt()));
-            inter.setInBound(ifinboundvbs.elementAt(i).getVariable().toLong());
-            inter.setOutBound(ifoutboundvbs.elementAt(i).getVariable().toLong());
-            vlans[i] = inter;
-        }
-        return vlans;
-
-
-
+        GraphCreator.createGraph("192.168.2.2");
     }
 
     @RequestMapping("/updateStatus")
@@ -270,60 +204,13 @@ public class Controller {
 
 
     @RequestMapping("/getRoutingTable")
-    public IPRoute[] getIpRoute(@RequestBody Map datamap){
+    public IPRoute[] getIpRoute(@RequestBody Map datamap) {
         String ip = datamap.get("ip").toString();
-        String readcommunity = (String)datamap.get("readcommunity");
-        String writecommunity = (String)datamap.get("writecommunity");
-        SnmpServer t = creater.getServer(ip, readcommunity,writecommunity);
-        Vector<VariableBinding> destvbs = null;
-        Vector<VariableBinding> ifindexvbs = null;
-        Vector<VariableBinding> metric1vbs = null;
-        Vector<VariableBinding> metric2vbs = null;
-        Vector<VariableBinding> metric3vbs = null;
-        Vector<VariableBinding> metric4vbs = null;
-        Vector<VariableBinding> nexthopvbs = null;
-        Vector<VariableBinding> typevbs = null;
-        Vector<VariableBinding> protovbs = null;
-        Vector<VariableBinding> agevbs = null;
-        Vector<VariableBinding> maskvbs = null;
-        Vector<VariableBinding> metric5vbs = null;
-        try{
-            destvbs = t.getSubTree(Constant.IpRouteDest);
-            ifindexvbs = t.getSubTree(Constant.IpRouteIfIndex);
-            metric1vbs = t.getSubTree(Constant.IpRouteMetric1);
-            metric2vbs = t.getSubTree(Constant.IpRouteMetric2);
-            metric3vbs = t.getSubTree(Constant.IpRouteMetric3);
-            metric4vbs = t.getSubTree(Constant.IpRouteMetric4);
-            nexthopvbs = t.getSubTree(Constant.IpRouteNextHop);
-            typevbs = t.getSubTree(Constant.IpRouteType);
-            protovbs = t.getSubTree(Constant.IpRouteProto);
-            agevbs = t.getSubTree(Constant.IpRouteAge);
-            maskvbs = t.getSubTree(Constant.IpRouteMask);
-            metric5vbs = t.getSubTree(Constant.IpRouteMetric5);
-        }catch(IOException e){
-            e.printStackTrace();
-        }
-        IPRoute[] irs = new IPRoute[destvbs.size()];
-        for(int i = 0 ; i < destvbs.size() ; i++){
-            IPRoute ir = new IPRoute();
-            ir.setIpRouteAge(agevbs.elementAt(i).getVariable().toInt());
-            ir.setIpRouteDest(destvbs.elementAt(i).getVariable().toString());
-            ir.setIpRouteIfIndex(ifindexvbs.elementAt(i).getVariable().toInt());
-            ir.setIpRouteMask(maskvbs.elementAt(i).getVariable().toString());
-            ir.setIpRouteMetric1(metric1vbs.elementAt(i).getVariable().toInt());
-            ir.setIpRouteMetric2(metric2vbs.elementAt(i).getVariable().toInt());
-            ir.setIpRouteMetric3(metric3vbs.elementAt(i).getVariable().toInt());
-            ir.setIpRouteMetric4(metric4vbs.elementAt(i).getVariable().toInt());
-            ir.setIpRouteMetric5(metric5vbs.elementAt(i).getVariable().toInt());
-            ir.setIpRouteNextHop(nexthopvbs.elementAt(i).getVariable().toString());
-            ir.setIpRouteProto(IPRouteProto.int2type(protovbs.elementAt(i).getVariable().toInt()));
-            ir.setIpRouteType(IPRouteType.int2Type(typevbs.elementAt(i).getVariable().toInt()));
-            irs[i] = ir;
-        }
-
-        return irs;
+        String readcommunity = (String) datamap.get("readcommunity");
+        String writecommunity = (String) datamap.get("writecommunity");
+        SnmpServer t = creater.getServer(ip, readcommunity, writecommunity);
+        return t.getIpRoute();
     }
-
     @RequestMapping("/setAdminStatus")
     public boolean setAdminStatus(@RequestBody Map datamap){
         boolean result = false;
@@ -345,5 +232,7 @@ public class Controller {
     public String getTraps(){
         return TrapManager.trapCache.elementAt(0).toString();
     }
+
+
 
 }

@@ -395,7 +395,7 @@ public class SnmpServer{
             }catch(IOException e){
                 e.printStackTrace();
             }
-            if(ipforwarding.getVariable().toInt() != 1){
+            if(ipforwarding.getVariable().getSyntax() == 128 || ipforwarding.getVariable().toInt() != 1){
                 this.device.setType(DeviceType.host);
             }
             else{
@@ -418,8 +418,57 @@ public class SnmpServer{
             }
         }
 
-
         return this.device.getType();
+    }
+
+    public IPRoute[] getIpRoute(){
+        Vector<VariableBinding> destvbs = null;
+        Vector<VariableBinding> ifindexvbs = null;
+        Vector<VariableBinding> metric1vbs = null;
+        Vector<VariableBinding> metric2vbs = null;
+        Vector<VariableBinding> metric3vbs = null;
+        Vector<VariableBinding> metric4vbs = null;
+        Vector<VariableBinding> nexthopvbs = null;
+        Vector<VariableBinding> typevbs = null;
+        Vector<VariableBinding> protovbs = null;
+        Vector<VariableBinding> agevbs = null;
+        Vector<VariableBinding> maskvbs = null;
+        Vector<VariableBinding> metric5vbs = null;
+        try{
+            destvbs = this.getSubTree(Constant.IpRouteDest);
+            ifindexvbs = this.getSubTree(Constant.IpRouteIfIndex);
+            metric1vbs = this.getSubTree(Constant.IpRouteMetric1);
+            metric2vbs = this.getSubTree(Constant.IpRouteMetric2);
+            metric3vbs = this.getSubTree(Constant.IpRouteMetric3);
+            metric4vbs = this.getSubTree(Constant.IpRouteMetric4);
+            nexthopvbs = this.getSubTree(Constant.IpRouteNextHop);
+            typevbs = this.getSubTree(Constant.IpRouteType);
+            protovbs = this.getSubTree(Constant.IpRouteProto);
+            agevbs = this.getSubTree(Constant.IpRouteAge);
+            maskvbs = this.getSubTree(Constant.IpRouteMask);
+            metric5vbs = this.getSubTree(Constant.IpRouteMetric5);
+        }catch(IOException e){
+            e.printStackTrace();
+        }
+        IPRoute[] irs = new IPRoute[destvbs.size()];
+        for(int i = 0 ; i < destvbs.size() ; i++){
+            IPRoute ir = new IPRoute();
+            ir.setIpRouteAge(agevbs.elementAt(i).getVariable().toInt());
+            ir.setIpRouteDest(destvbs.elementAt(i).getVariable().toString());
+            ir.setIpRouteIfIndex(ifindexvbs.elementAt(i).getVariable().toInt());
+            ir.setIpRouteMask(maskvbs.elementAt(i).getVariable().toString());
+            ir.setIpRouteMetric1(metric1vbs.elementAt(i).getVariable().toInt());
+            ir.setIpRouteMetric2(metric2vbs.elementAt(i).getVariable().toInt());
+            ir.setIpRouteMetric3(metric3vbs.elementAt(i).getVariable().toInt());
+            ir.setIpRouteMetric4(metric4vbs.elementAt(i).getVariable().toInt());
+            ir.setIpRouteMetric5(metric5vbs.elementAt(i).getVariable().toInt());
+            ir.setIpRouteNextHop(nexthopvbs.elementAt(i).getVariable().toString());
+            ir.setIpRouteProto(IPRouteProto.int2type(protovbs.elementAt(i).getVariable().toInt()));
+            ir.setIpRouteType(IPRouteType.int2Type(typevbs.elementAt(i).getVariable().toInt()));
+            irs[i] = ir;
+        }
+
+        return irs;
     }
 
 
