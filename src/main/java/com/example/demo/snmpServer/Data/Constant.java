@@ -35,5 +35,15 @@ public class Constant {
             IpRouteProto = {1, 3, 6, 1, 2, 1, 4, 21, 1, 9},
             IpRouteAge = {1, 3, 6, 1, 2, 1, 4, 21, 1, 10},
             IpRouteMask = {1, 3, 6, 1, 2, 1, 4, 21, 1, 11},
-            IpRouteMetric5 = {1, 3, 6, 1, 2, 1, 4, 21, 1, 12};
+            IpRouteMetric5 = {1, 3, 6, 1, 2, 1, 4, 21, 1, 12},
+
+            // 获得自身所有ip
+            IpAdEntAddr = {1, 3, 6, 1, 2, 1, 4, 20, 1, 1},
+            IpAdEntIfAddr = {1, 3, 6, 1, 2, 1, 4, 20, 1, 2},
+            IpAdEntNetmask = {1, 3, 6, 1, 2, 1, 4, 20, 1, 3},
+            IpAdEntReasmMaxSize = {1, 3, 6, 1, 2, 1, 4, 20, 1, 5};
+
+
+
+
 }

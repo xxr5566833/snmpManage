@@ -2,16 +2,17 @@ package com.example.demo.snmpServer;
 
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.util.Map;
 import java.util.Vector;
 
-import com.example.demo.snmpServer.Data.Constant;
-import com.example.demo.snmpServer.Data.SysInfo;
+import com.example.demo.snmpServer.Data.*;
 import com.sun.jmx.snmp.SnmpString;
 import org.snmp4j.*;
 import org.snmp4j.event.ResponseEvent;
 import org.snmp4j.mp.SnmpConstants;
 import org.snmp4j.smi.*;
 import org.snmp4j.transport.DefaultUdpTransportMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 
 import javax.xml.ws.Response;
 
@@ -22,6 +23,7 @@ public class SnmpServer{
     private String writecommunity;
     private TransportMapping trapTransport;
     private Snmp trapSnmp;
+    private Device device;
     public void initTrapListen(String ip, int port){
         // 设置接收trap的IP和端口
         try {
@@ -71,6 +73,7 @@ public class SnmpServer{
         targetAddress = GenericAddress.parse("udp:"+ ip + "/" + port);
         this.readcommunity = readcommunity;
         this.writecommunity = writecommunity;
+        this.device = new Device();
         try {
             TransportMapping transport = new DefaultUdpTransportMapping();
             snmp = new Snmp(transport);
@@ -222,6 +225,11 @@ public class SnmpServer{
         }catch(Exception e){
             e.printStackTrace();
         }
+        try {
+            Thread.sleep(1000);
+        }catch(Exception e){
+            e.printStackTrace();
+        }
         pdu = new PDU();
         pdu.add(new VariableBinding(new OID(Constant.IfOperStatus).append(index)));
         pdu.setType(PDU.GET);
@@ -351,5 +359,68 @@ public class SnmpServer{
         }
         return -1;
     }
+
+    // 获得该设备所有ip
+    public Vector<IP> getOwnIp(){
+        Vector<VariableBinding> ipaddrs = null;
+        Vector<VariableBinding> ipifindexs = null;
+        Vector<VariableBinding> ipnetmasks = null;
+        Vector<VariableBinding> ipmaxsizes = null;
+        try {
+            ipaddrs = this.getSubTree(Constant.IpAdEntAddr);
+            ipifindexs = this.getSubTree(Constant.IpAdEntIfAddr);
+            ipnetmasks = this.getSubTree(Constant.IpAdEntNetmask);
+            ipmaxsizes = this.getSubTree(Constant.IpAdEntReasmMaxSize);
+        }catch(IOException e){
+            e.printStackTrace();
+        }
+        Vector<IP> ips = new Vector<IP>();
+        for(int i = 0 ; i < ipaddrs.size() ; i++){
+            IP ip  = new IP();
+            ip.setIpAddress(ipaddrs.elementAt(i).getVariable().toString());
+            ip.setIpIfIndex(ipifindexs.elementAt(i).getVariable().toInt());
+            ip.setIpNetMask(ipnetmasks.elementAt(i).getVariable().toString());
+            ip.setIpMaxSize(ipmaxsizes.elementAt(i).getVariable().toInt());
+            ips.add(ip);
+        }
+        return ips;
+    }
+
+    public DeviceType getDeviceType(){
+        if(this.device.getType() == DeviceType.none){
+            //首先判断ipForwarding
+            VariableBinding ipforwarding = null;
+            try {
+                ipforwarding = this.getTreeNode(Constant.IpForwarding);
+            }catch(IOException e){
+                e.printStackTrace();
+            }
+            if(ipforwarding.getVariable().toInt() != 1){
+                this.device.setType(DeviceType.host);
+            }
+            else{
+                // 交换机和路由器
+                VariableBinding v = null;
+                try{
+                    v = this.getTreeNode(Constant.OnlyRouterOid);
+                }catch(IOException e){
+                    e.printStackTrace();
+                }
+                // 128是NoSuchObject的对应syntax的编号
+                if(v.getSyntax() == 128)
+                {
+                    this.device.setType(DeviceType.exchange);
+                }
+                else {
+                    // 路由器或者是三层交换机
+                    this.device.setType( DeviceType.router);
+                }
+            }
+        }
+
+
+        return this.device.getType();
+    }
+
 
 }

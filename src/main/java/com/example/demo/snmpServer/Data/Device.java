@@ -10,7 +10,19 @@ public class Device {
     //设备数量
     private int interfaceNum;
     //与本系统关联的IP地址？？不知道这个“与本系统关联”是指？
+    private DeviceType type;
 
+    public Device(){
+        this.type = DeviceType.none;
+    }
+
+    public void setType(DeviceType type) {
+        this.type = type;
+    }
+
+    public DeviceType getType() {
+        return type;
+    }
 
     public SysInfo getSysinfo() {
         return sysinfo;

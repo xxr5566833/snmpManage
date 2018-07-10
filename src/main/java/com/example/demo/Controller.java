@@ -112,40 +112,11 @@ public class Controller {
 
     @RequestMapping("/getDeviceType")
     public int getDeviceType(@RequestBody Map datamap){
-        DeviceType type;
         String ip = datamap.get("ip").toString();
         String readcommunity = (String)datamap.get("readcommunity");
         String writecommunity = (String)datamap.get("writecommunity");
         SnmpServer t = creater.getServer(ip, readcommunity,writecommunity);
-        //首先判断ipForwarding
-        VariableBinding ipforwarding = null;
-        try {
-            ipforwarding = t.getTreeNode(Constant.IpForwarding);
-        }catch(IOException e){
-            e.printStackTrace();
-        }
-        if(ipforwarding.getVariable().toInt() == 2){
-            type = DeviceType.host;
-        }
-        else{
-            // 交换机和路由器
-            VariableBinding v = null;
-            try{
-                v = t.getTreeNode(Constant.OnlyRouterOid);
-            }catch(IOException e){
-                e.printStackTrace();
-            }
-            // 128是NoSuchObject的对应syntax的编号
-            if(v.getSyntax() == 128)
-            {
-                type = DeviceType.exchange;
-            }
-            else {
-                // 路由器或者是三层交换机
-                type = DeviceType.router;
-            }
-        }
-        return type.getType();
+        return t.getDeviceType().getType();
     }
     @RequestMapping("/getInfo")
     public SysInfo getSysInfo(@RequestBody Map datamap){
@@ -297,28 +268,6 @@ public class Controller {
         return interFaces;
     }
 
-    @RequestMapping("/getNetwork")
-    public IP[] getRelatedIp(@RequestBody Map datamap){
-        IP[] ips = new IP[4];
-        int[] oid = {1, 3, 6, 1, 2, 1, 4, 20, 1, 1};
-        String readcommunity = (String)datamap.get("readcommunity");
-        String writecommunity = (String)datamap.get("writecommunity");
-        SnmpServer t = creater.getServer(datamap.get("ip").toString(), readcommunity,writecommunity);
-        // TODO: 目前还是不太清楚这个oid下的四个ip地址到底具体含义是什么
-        Vector<VariableBinding> s = t.getBulk(oid);
-        for(int i = 0 ; i < 16 ; i++){
-            //这里暂定只有四个ip，mib也没有节点指示有几个related ip
-            IP ip = new IP();
-            ip.setIpAddress(s.elementAt(4 * (i / 4)).getVariable().toString());
-            ip.setIpIfIndex(s.elementAt(4 * (i / 4) + 1).getVariable().toString());
-            ip.setIpNetMask(s.elementAt(4 * (i / 4) + 2).getVariable().toString());
-            ip.setIpMaxSize(s.elementAt(4 * (i / 4) + 3).getVariable().toString());
-            ips[i / 4] = ip;
-            i = i + 4;
-        }
-
-        return ips;
-    }
 
     @RequestMapping("/getRoutingTable")
     public IPRoute[] getIpRoute(@RequestBody Map datamap){
