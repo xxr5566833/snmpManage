@@ -41,7 +41,12 @@ public class Constant {
             IpAdEntAddr = {1, 3, 6, 1, 2, 1, 4, 20, 1, 1},
             IpAdEntIfAddr = {1, 3, 6, 1, 2, 1, 4, 20, 1, 2},
             IpAdEntNetmask = {1, 3, 6, 1, 2, 1, 4, 20, 1, 3},
-            IpAdEntReasmMaxSize = {1, 3, 6, 1, 2, 1, 4, 20, 1, 5};
+            IpAdEntReasmMaxSize = {1, 3, 6, 1, 2, 1, 4, 20, 1, 5},
+
+    //相连设备的ip
+            atNetAddress = {1, 3, 6, 1, 2, 1, 3, 1, 1, 3};
+
+    // 获取CPU信息
 
 
 

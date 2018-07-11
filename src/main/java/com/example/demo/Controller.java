@@ -30,8 +30,14 @@ public class Controller {
 
     @RequestMapping("/test")
     public void test (){
-        SnmpServer t = creater.getServer("192.168.2.2", "public","private");
-        GraphCreator.createGraph("192.168.2.2");
+        SnmpServer t = creater.getServer("192.168.2.1", "public","private");
+        GraphCreator.createGraph("192.168.2.10");
+        /*int[] oid = {1, 3, 6, 1, 2, 1, 16};
+        try {
+            t.getSubTree(oid);
+        }catch(Exception e){
+            e.printStackTrace();
+        }*/
     }
 
     @RequestMapping("/updateStatus")

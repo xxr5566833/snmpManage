@@ -8,23 +8,47 @@ import java.util.Map;
 import java.util.Vector;
 
 public class Graph {
-    public Vector<Node> nodes;
-    public Vector<Vector<Edge>> edges;
-    public Map ip2Node ;
-
+    private Vector<Node> nodes;
+    private Map ip2Node ;
+    private Vector<Node> exchanges = new Vector<>();
+    private Vector<Node> routers = new Vector<>();
+    private Vector<Node> hosts = new Vector<>();
     public Graph(){
         nodes = new Vector<Node>();
-        edges = new Vector<Vector<Edge>>();
         ip2Node = new HashMap();
+    }
+
+    public void setTypeNode(){
+        for(Node n : this.nodes) {
+            switch (n.getType()) {
+                case host:
+                    this.hosts.add(n);
+                    break;
+                case gateway:
+                    this.routers.add(n);
+                    break;
+                case exchange:
+                    this.exchanges.add(n);
+                    break;
+            }
+        }
     }
 
     public int getNodeNum(){
         return this.nodes.size();
     }
 
+    public Vector<Node> getNodes(){
+        return this.nodes;
+    }
+
+    public void setNodes(Vector<Node> nodes){
+        this.nodes = nodes;
+    }
+
     public void addNode(Node n){
         nodes.add(n);
-        if(n.getType() == NodeType.gateway){
+        if(n.getType() != NodeType.host){
             for(IP ip : n.getIps()){
                 ip2Node.put(ip.getIpAddress(), n);
             }
@@ -32,25 +56,15 @@ public class Graph {
         else{
             ip2Node.put(n.getMainIp(), n);
         }
-        edges.add(new Vector<Edge>());
     }
 
-    public boolean isSameSubnet(String ip, String subnet, String mask){
-        String[] ips = ip.split("\\.");
-        String[] masks = mask.split("\\.");
-        String[] newips = new String[4];
-        String[] subnets = subnet.split("\\.");
-        String[] newsubnets = new String[4];
-        for(int i = 0 ; i < 4 ; i++){
-            int sub = Integer.parseInt(ips[i]) & Integer.parseInt(masks[i]);
-            newips[i] = String.format("%d", sub);
-            int newsub = Integer.parseInt(subnets[i]) & Integer.parseInt(masks[i]);
-            newsubnets[i] = String.format("%d", newsub);
+    public void setIps(Node n, Vector<IP> ips){
+        n.setIps(ips);
+        for(IP ip : ips){
+            this.ip2Node.put(ip.getIpAddress(), n);
         }
-        String newip = String.join(".", newips);
-        String newsubnet = String.join(".", newsubnets);
-        return newsubnet.equals(newip);
     }
+
 
 
     public Node ipToNode(String ip){
@@ -58,7 +72,7 @@ public class Graph {
     }
 
     public boolean isConnected(int i, int j){
-        Vector<Edge> edges = this.edges.elementAt(i);
+        Vector<Edge> edges = this.nodes.elementAt(i).getEdges();
         for(Edge e : edges){
             if(e.getDestIndex() == j){
                 return true;
@@ -82,13 +96,12 @@ public class Graph {
     }
 
     public void addEdge(int i, int j){
-        Vector<Edge> edges = this.edges.elementAt(i);
-        // 首先确定不能重复加
-        edges.add(new Edge(j));
+        this.nodes.elementAt(i).addEdge(this.nodes.elementAt(j));
+        this.nodes.elementAt(j).addEdge(this.nodes.elementAt(i));
     }
 
     public Vector<Edge> getNbrs(int i){
-        return this.edges.elementAt(i);
+        return this.nodes.elementAt(i).getEdges();
     }
 
     public Node getNode(int index){

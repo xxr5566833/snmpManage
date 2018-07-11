@@ -1,7 +1,7 @@
 package com.example.demo.Graph;
 
 public class Edge {
-    private int destIndex;
+    private Node dest;
     private int status;
 
     public void setStatus(int status) {
@@ -9,19 +9,24 @@ public class Edge {
     }
 
     public int getDestIndex() {
-        return destIndex;
+        return this.dest.getIndex();
+    }
+
+    public Node getDest(){
+        // 这里一开始无限递归了...
+        return this.dest;
     }
 
     public int getStatus() {
         return status;
     }
 
-    public void setDestIndex(int destIndex) {
-        this.destIndex = destIndex;
+    public void setDest(Node n) {
+        this.dest = n;
     }
 
-    public Edge(int dest){
-        this.destIndex = dest;
+    public Edge(Node n){
+        this.dest = n;
         this.status = 0;
     }
 }

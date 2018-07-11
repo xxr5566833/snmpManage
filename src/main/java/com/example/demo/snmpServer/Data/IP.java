@@ -6,8 +6,32 @@ public class IP {
     private String ipNetMask;
     private int ipMaxSize;
 
+    public IP(){}
+
+    public IP(String ipaddress, String ipnetmask){
+        this.ipAddress = ipaddress;
+        this.ipNetMask = ipnetmask;
+        this.ipIfIndex = -1;
+        this.ipMaxSize = -1;
+    }
+
     public String getIpAddress() {
         return ipAddress;
+    }
+
+    public static int compare(String mask1, String mask2){
+        IPv4 ip1 = new IPv4();
+        ip1.setMask(mask1);
+        IPv4 ip2 = new IPv4();
+        ip2.setMask(mask2);
+        if(ip1.getMaskInt() > ip2.getMaskInt()){
+            return 1;
+        }
+        else if(ip1.getMaskInt() < ip2.getMaskInt()){
+            return -1;
+        }
+        else
+            return 0;
     }
 
     public void setIpAddress(String ipAddress) {

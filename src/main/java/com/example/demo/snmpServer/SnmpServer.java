@@ -67,6 +67,9 @@ public class SnmpServer{
         this.listen();
     }
 
+    public SnmpServer(String ip){
+        this(ip, 161, "public", "private");
+    }
 
     public SnmpServer(String ip, int port, String readcommunity, String writecommunity) {
         // 设置Agent方的IP和端口
@@ -125,6 +128,10 @@ public class SnmpServer{
                     System.out.println(respEvnt.getResponse());
                 }
             }
+            else{
+                // 不加这个会陷入死循环
+                break;
+            }
         }
         return vbs;
     }
@@ -170,7 +177,7 @@ public class SnmpServer{
         return this.getTreeNode(newoid);
     }
     // 获得这个oid 所对应的节点的值，注意这里假定这个oid就是某个子树节点
-    public VariableBinding getTreeNode(OID oid) throws IOException{
+    public VariableBinding getTreeNode(OID oid) throws IOException, NullPointerException{
         PDU pdu = new PDU();
         pdu.add(new VariableBinding(oid));
         pdu.setType(PDU.GET);
@@ -188,7 +195,22 @@ public class SnmpServer{
                     v[i] = recVB.getVariable().toString();
                 }*/
         }
-        return null;
+        else {
+            throw new NullPointerException();
+        }
+    }
+
+    public boolean isValid(){
+        // 通过获取都实现的一个OID是否有正确信息传回来判断是否这个设备可以被管理
+        boolean result = false;
+        try{
+            this.getTreeNode(Constant.SysName);
+            result = true;
+        }catch(Exception e){
+            e.printStackTrace();
+            result = false;
+        }
+        return result;
     }
 
 
@@ -200,7 +222,7 @@ public class SnmpServer{
         // 通信不成功时的重试次数
         target.setRetries(2);
         // 超时时间
-        target.setTimeout(10000);
+        target.setTimeout(2000);
         //终于知道问题的关键所在了  2c版本才增加了GETBULK..
         //那么为什么之前在试2c时发现1可以2c却不可以呢？具体哪个例子我也忘了，浪费这么长时间哎
         // 统一用版本2吧
@@ -470,6 +492,24 @@ public class SnmpServer{
 
         return irs;
     }
+
+    public String[] getLinkedIp(){
+        Vector<VariableBinding> vbs = new Vector<>();
+        // 这里需要通过这个设备的所有IP来获取与它相连的设备
+            try {
+                vbs.addAll(this.getSubTree(Constant.atNetAddress));
+            }catch(IOException e){
+                e.printStackTrace();
+            }
+        String[] ips = new String[vbs.size()];
+        for(int i = 0 ; i < ips.length ; i ++){
+            ips[i] = vbs.elementAt(i).getVariable().toString();
+        }
+        return ips;
+    }
+
+
+
 
 
 }
