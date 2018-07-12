@@ -176,8 +176,6 @@ public class GraphCreator {
             return ;
         SnmpServer t = SnmpServerCreater.getServer(n.getMainIp());
         DeviceType type = t.getDeviceType();
-        if(n.getType() == NodeType.other)
-            n.setType(type == DeviceType.router ? NodeType.gateway : NodeType.subnet);
 
         // 首先是自己的ip信息
         Vector<IP> ips = t.getOwnIp();

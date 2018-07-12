@@ -1,8 +1,13 @@
 package com.example.demo.Graph;
 
+import com.example.demo.snmpServer.Data.Constant;
 import com.example.demo.snmpServer.Data.IP;
 import com.example.demo.snmpServer.Data.IPv4;
+import com.example.demo.snmpServer.SnmpServer;
+import com.example.demo.snmpServer.SnmpServerCreater;
+import org.snmp4j.smi.VariableBinding;
 
+import java.io.IOException;
 import java.util.Vector;
 
 public class Node {
@@ -11,6 +16,7 @@ public class Node {
     public NodeType type;
     public NodeStatus status;
     private Vector<Edge> edges;
+    private String name;
     private int index;
 
     public Node(String mainIp, NodeType type){
@@ -19,7 +25,24 @@ public class Node {
         this.ips = new Vector<>();
         this.type = type;
         this.edges = new Vector<Edge>();
+        SnmpServer t = SnmpServerCreater.getServer(mainIp);
+        VariableBinding vb = null;
+        try {
+            vb = t.getTreeNode(Constant.SysName);
+        }catch(IOException e){
+            e.printStackTrace();
+        }
+        this.name = vb.getVariable().toString();
     }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public String getName() {
+        return name;
+    }
+
     public Node(String mainip, NodeType type, int index){
         this(mainip, type);
         this.index = index;

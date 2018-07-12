@@ -1,7 +1,9 @@
 package com.example.demo;
 
 
+import com.example.demo.Graph.Graph;
 import com.example.demo.Graph.GraphCreator;
+import com.example.demo.Graph.GraphData;
 import com.example.demo.snmpServer.Data.*;
 import com.example.demo.snmpServer.SnmpServer;
 import com.example.demo.snmpServer.SnmpServerCreater;
@@ -29,15 +31,22 @@ public class Controller {
     private static SnmpServerCreater creater = new SnmpServerCreater();
 
     @RequestMapping("/test")
-    public void test (){
+    public GraphData test (){
         SnmpServer t = creater.getServer("192.168.2.1", "public","private");
-        GraphCreator.createGraph("192.168.2.10");
+        Graph g = GraphCreator.createGraph("127.0.0.1");
+        return g.toData();
         /*int[] oid = {1, 3, 6, 1, 2, 1, 16};
         try {
             t.getSubTree(oid);
         }catch(Exception e){
             e.printStackTrace();
         }*/
+    }
+
+    @RequestMapping("/getNetGraph")
+    public GraphData getNetGraph(){
+        Graph g = GraphCreator.createGraph("127.0.0.1");
+        return g.toData();
     }
 
     @RequestMapping("/updateStatus")

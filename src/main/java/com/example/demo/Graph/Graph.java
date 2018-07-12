@@ -18,6 +18,44 @@ public class Graph {
         ip2Node = new HashMap();
     }
 
+    public GraphData toData(){
+        NodeData[] ns = new NodeData[this.nodes.size()];
+        Vector<LinkData> links = new Vector<>();
+        for(int i = 0 ; i < this.nodes.size() ; i++){
+            Node n = this.nodes.elementAt(i);
+            ns[i] = new NodeData();
+            ns[i].setName(n.getName());
+            ns[i].setCategory(n.getType());
+            Vector<Edge> edges = n.getEdges();
+            for(int j = 0 ; j < edges.size() ; j++){
+                Node dest = edges.elementAt(j).getDest();
+                // 检查是否重复
+                boolean flag = false;
+                for(int k = 0 ; k < links.size() ; k++){
+                    LinkData link = links.elementAt(k);
+                    if((dest.getName().equals(link.getSource()) && n.getName().equals(link.getTarget()))
+                            || (dest.getName().equals(link.getTarget()) && n.getName().equals(link.getSource()))){
+                        flag = true;
+                        break;
+                    }
+                }
+                if(!flag){
+                    // 说明没有重复，那么吧这个边加入到links中
+                    LinkData link = new LinkData();
+                    link.setSource(n.getName());
+                    link.setTarget(dest.getName());
+                    links.add(link);
+                }
+            }
+        }
+        GraphData data = new GraphData();
+        data.setData(ns);
+        LinkData[] linkdatas  = new LinkData[links.size()];
+        data.setLink(links.toArray(linkdatas));
+        return data;
+
+    }
+
     public void setTypeNode(){
         for(Node n : this.nodes) {
             switch (n.getType()) {
