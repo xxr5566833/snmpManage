@@ -31,16 +31,9 @@ public class Controller {
     private static SnmpServerCreater creater = new SnmpServerCreater();
 
     @RequestMapping("/test")
-    public GraphData test (){
-        SnmpServer t = creater.getServer("192.168.2.1", "public","private");
-        Graph g = GraphCreator.createGraph("127.0.0.1");
-        return g.toData();
-        /*int[] oid = {1, 3, 6, 1, 2, 1, 16};
-        try {
-            t.getSubTree(oid);
-        }catch(Exception e){
-            e.printStackTrace();
-        }*/
+    public int test (){
+        SnmpServer t = creater.getServer("127.0.0.1", "public","private");
+        return t.collectCPU();
     }
 
     @RequestMapping("/getNetGraph")

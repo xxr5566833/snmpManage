@@ -507,4 +507,19 @@ public class SnmpServer{
         }
         return ips;
     }
+
+    public int collectCPU(){
+        Vector<VariableBinding> vbs = null;
+        try{
+            vbs = this.getSubTree(Constant.hrProcessorLoad);
+        }catch(IOException e){
+            e.printStackTrace();
+        }
+        int sum = 0;
+        for(int i = 0 ; i < vbs.size() ; i++){
+            sum += vbs.elementAt(i).getVariable().toInt();
+        }
+        return sum / vbs.size();
+    }
+
 }

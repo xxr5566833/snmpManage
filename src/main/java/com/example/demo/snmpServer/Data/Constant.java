@@ -44,9 +44,10 @@ public class Constant {
             IpAdEntReasmMaxSize = {1, 3, 6, 1, 2, 1, 4, 20, 1, 5},
 
     //相连设备的ip
-            atNetAddress = {1, 3, 6, 1, 2, 1, 3, 1, 1, 3};
+            atNetAddress = {1, 3, 6, 1, 2, 1, 3, 1, 1, 3},
 
     // 获取CPU信息
+            hrProcessorLoad = {1, 3, 6, 1, 2, 1, 25, 3, 3, 1, 2};
 
 
 
