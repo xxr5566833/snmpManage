@@ -30,8 +30,9 @@ public class Node {
         try {
             vb = t.getTreeNode(Constant.SysName);
         }catch(IOException e){
-            e.printStackTrace();
+            vb = new VariableBinding();
         }
+
         this.name = vb.getVariable().toString();
     }
 

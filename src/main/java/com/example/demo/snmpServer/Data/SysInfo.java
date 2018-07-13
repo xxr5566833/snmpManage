@@ -10,6 +10,15 @@ public class SysInfo {
     private String sysContact;
     private String sysName;
     private String sysLocation;
+    private int sysCpuUsedRate;
+
+    public int getSysCpuUsedRate() {
+        return sysCpuUsedRate;
+    }
+
+    public void setSysCpuUsedRate(int sysCpuUsedRate) {
+        this.sysCpuUsedRate = sysCpuUsedRate;
+    }
 
     public String getSysDescr(){
         return this.sysDescr;

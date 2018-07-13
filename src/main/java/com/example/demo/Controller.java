@@ -5,6 +5,7 @@ import com.example.demo.Graph.Graph;
 import com.example.demo.Graph.GraphCreator;
 import com.example.demo.Graph.GraphData;
 import com.example.demo.snmpServer.Data.*;
+import com.example.demo.snmpServer.Data.Process;
 import com.example.demo.snmpServer.SnmpServer;
 import com.example.demo.snmpServer.SnmpServerCreater;
 import com.example.demo.snmpServer.TrapManager;
@@ -31,9 +32,27 @@ public class Controller {
     private static SnmpServerCreater creater = new SnmpServerCreater();
 
     @RequestMapping("/test")
-    public int test (){
+    public Process[] test (){
         SnmpServer t = creater.getServer("127.0.0.1", "public","private");
-        return t.collectCPU();
+        return t.getProcesses();
+    }
+
+    @RequestMapping("/getDisks")
+    public Disk[] getDisks(@RequestBody Map datamap){
+        String ip = (String)datamap.get("ip");
+        String readcommunity = (String)datamap.get("readcommunity");
+        String writecommunity = (String)datamap.get("writecommunity");
+        SnmpServer t = creater.getServer(ip, readcommunity,writecommunity);
+        return t.collectDisk();
+    }
+
+    @RequestMapping("/getProcesses")
+    public Process[] getProcesses(@RequestBody Map datamap){
+        String ip = (String)datamap.get("ip");
+        String readcommunity = (String)datamap.get("readcommunity");
+        String writecommunity = (String)datamap.get("writecommunity");
+        SnmpServer t = creater.getServer(ip, readcommunity,writecommunity);
+        return t.getProcesses();
     }
 
     @RequestMapping("/getNetGraph")

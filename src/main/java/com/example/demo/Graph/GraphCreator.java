@@ -12,19 +12,29 @@ public class GraphCreator {
         Graph graph = new Graph();
         // 通过ip创建对应的节点
         // 首先通过ip对应设备的类型来判断
+        Node n = null;
         SnmpServer t = SnmpServerCreater.getServer(ip);
         if(t.getDeviceType() == DeviceType.host){
+            n = new Node(ip, NodeType.host, 0);
             // 获取其默认网关，从默认网关开始探索
             IPRoute[] ips = t.getIpRoute();
             for(int i = 0 ; i < ips.length ; i++){
                 if(ips[i].getIpRouteDest().equals("0.0.0.0")){
-                    ip = ips[i].getIpRouteNextHop();
-                    break;
+                    SnmpServer server = SnmpServerCreater.getServer(ips[i].getIpRouteNextHop());
+                    if(server.isValid()) {
+                        ip = ips[i].getIpRouteNextHop();
+                        n = new Node(ip, NodeType.gateway, 0);
+                        break;
+                    }
                 }
+                // 还有bug 去网络实验室改
             }
         }
-        Node n = new Node(ip, NodeType.gateway, 0);
-        n.setType(NodeType.gateway);
+        else{
+            // 说明是路由器或者是三层交换机
+            // 路由器的话可以直接进入图遍历算法了，但是交换机怎么办
+            n = new Node(ip, NodeType.gateway, 0);
+        }
         /*t = SnmpServerCreater.getServer(ip);
         n.setIps(t.getOwnIp());*/
         graph.addNode(n);

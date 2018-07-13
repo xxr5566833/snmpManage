@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.Vector;
 
 import com.example.demo.snmpServer.Data.*;
+import com.example.demo.snmpServer.Data.Process;
 import com.sun.jmx.snmp.SnmpString;
 import org.snmp4j.*;
 import org.snmp4j.event.ResponseEvent;
@@ -160,6 +161,7 @@ public class SnmpServer{
                     .getVariableBindings();
             vbs.addAll(recVBs);
         }
+
         return vbs;
     }
     public void close(){
@@ -196,7 +198,8 @@ public class SnmpServer{
                 }*/
         }
         else {
-            throw new NullPointerException();
+            // 这里fake一个数据返回
+            throw new IOException();
         }
     }
 
@@ -354,6 +357,7 @@ public class SnmpServer{
             sys.setSysName(this.getTreeNode(Constant.SysName).getVariable().toString());
             sys.setSysObjectId(this.getTreeNode(Constant.SysObjectId).getVariable().toString());
             sys.setSysUpTime(this.getTreeNode(Constant.SysUpTime).getVariable());
+            sys.setSysCpuUsedRate(this.collectCPU());
         }catch(IOException e){
             e.printStackTrace();
         }
@@ -520,6 +524,59 @@ public class SnmpServer{
             sum += vbs.elementAt(i).getVariable().toInt();
         }
         return sum / vbs.size();
+    }
+
+    public Disk[] collectDisk(){
+        Vector<VariableBinding> indexvbs = null;
+        Vector<VariableBinding> descrvbs = null;
+        Vector<VariableBinding> unitvbs = null;
+        Vector<VariableBinding> sizevbs = null;
+        Vector<VariableBinding> usedvbs = null;
+        try{
+            indexvbs = this.getSubTree(Constant.hrStorageIndex);
+            descrvbs = this.getSubTree(Constant.hrStorageDescr);
+            unitvbs = this.getSubTree(Constant.hrStorageUnit);
+            sizevbs = this.getSubTree(Constant.hrStorageSize);
+            usedvbs = this.getSubTree(Constant.hrStorageUsed);
+        }catch(IOException e){
+            e.printStackTrace();
+        }
+        Disk[] disks = new Disk[indexvbs.size()];
+        for(int i = 0 ; i < disks.length ; i++){
+            Disk disk = new Disk();
+            disk.setStorageDescr(descrvbs.elementAt(i).getVariable().toString());
+            disk.setStorageUnits(unitvbs.elementAt(i).getVariable().toInt());
+            disk.setUsedRate(sizevbs.elementAt(i).getVariable().toLong(), usedvbs.elementAt(i).getVariable().toLong());
+            disks[i] = disk;
+        }
+        return disks;
+    }
+    public Process[] getProcesses(){
+        Vector<VariableBinding> indexvbs = null;
+        Vector<VariableBinding> namevbs = null;
+        Vector<VariableBinding> typevbs = null;
+        // Vector<VariableBinding> memoryvbs = null;
+        Vector<VariableBinding> statusvbs = null;
+        try{
+            indexvbs = this.getSubTree(Constant.hrSWRunIndex);
+            namevbs = this.getSubTree(Constant.hrSWRunName);
+            typevbs = this.getSubTree(Constant.hrSWRunType);
+            // memoryvbs = this.getSubTree(Constant.hrSWRunMemory);
+            statusvbs = this.getSubTree(Constant.hrSWRunStatus);
+        }catch(IOException e){
+            e.printStackTrace();
+        }
+        Process[] processes = new Process[indexvbs.size()];
+        for(int i = 0 ; i < processes.length ; i++){
+            Process process = new Process();
+            process.setIndex(indexvbs.elementAt(i).getVariable().toInt());
+            // process.setMemory(memoryvbs.elementAt(i).getVariable().toInt());
+            process.setName(namevbs.elementAt(i).getVariable().toString());
+            process.setType(ProcessType.values()[typevbs.elementAt(i).getVariable().toInt() - 1]);
+            process.setStatus(ProcessRunStatus.values()[statusvbs.elementAt(i).getVariable().toInt() - 1]);
+            processes[i] = process;
+        }
+        return processes;
     }
 
 }

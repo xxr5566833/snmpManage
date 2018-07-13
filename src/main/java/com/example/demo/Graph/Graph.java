@@ -20,12 +20,15 @@ public class Graph {
 
     public GraphData toData(){
         NodeData[] ns = new NodeData[this.nodes.size()];
+        DevData[] devs = new DevData[this.nodes.size()];
         Vector<LinkData> links = new Vector<>();
         for(int i = 0 ; i < this.nodes.size() ; i++){
             Node n = this.nodes.elementAt(i);
             ns[i] = new NodeData();
             ns[i].setName(n.getName());
             ns[i].setCategory(n.getType());
+            DevData dev = new DevData(n.getName(), n.getMainIp(), n.getType());
+            devs[i] = dev;
             Vector<Edge> edges = n.getEdges();
             for(int j = 0 ; j < edges.size() ; j++){
                 Node dest = edges.elementAt(j).getDest();
@@ -52,6 +55,7 @@ public class Graph {
         data.setData(ns);
         LinkData[] linkdatas  = new LinkData[links.size()];
         data.setLink(links.toArray(linkdatas));
+        data.setDevs(devs);
         return data;
 
     }

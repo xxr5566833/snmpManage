@@ -47,7 +47,19 @@ public class Constant {
             atNetAddress = {1, 3, 6, 1, 2, 1, 3, 1, 1, 3},
 
     // 获取CPU信息
-            hrProcessorLoad = {1, 3, 6, 1, 2, 1, 25, 3, 3, 1, 2};
+            hrProcessorLoad = {1, 3, 6, 1, 2, 1, 25, 3, 3, 1, 2},
+    // 获取硬盘信息
+            hrStorageIndex = {1, 3, 6, 1, 2, 1, 25, 2, 3, 1, 1},
+            hrStorageDescr = {1, 3, 6, 1, 2, 1, 25, 2, 3, 1, 3},
+            hrStorageUnit = {1, 3, 6, 1, 2, 1, 25, 2, 3, 1, 4},
+            hrStorageSize = {1, 3, 6, 1, 2, 1, 25, 2, 3, 1, 5},
+            hrStorageUsed = {1, 3, 6, 1, 2, 1, 25, 2, 3, 1, 6},
+    // 进程信息
+            hrSWRunIndex = {1, 3, 6, 1, 2, 1, 25, 4, 2, 1, 1},
+            hrSWRunName = {1, 3, 6, 1, 2, 1, 25, 4, 2, 1, 2},
+            hrSWRunType = {1, 3, 6, 1, 2, 1, 25, 4, 2, 1, 6},
+            hrSWRunStatus = {1, 3, 6, 1, 2, 1, 25, 4, 2, 1, 7},
+            hrSWRunMemory = {1, 3, 6, 1, 2, 1, 25, 5, 1, 1, 2};
 
 
 
