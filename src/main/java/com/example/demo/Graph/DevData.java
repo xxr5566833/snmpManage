@@ -5,19 +5,19 @@ public class DevData {
     private String ip;
     private String readcommunity;
     private String writecommunity;
-    private NodeType type;
+    private NodeType deviceType;
 
-    public void setType(NodeType type) {
-        this.type = type;
+    public void setDeviceType(NodeType type) {
+        this.deviceType = type;
     }
 
-    public NodeType getType() {
-        return type;
+    public NodeType getDeviceType() {
+        return deviceType;
     }
     public DevData(String name, String ip, NodeType type){
         this.name = name;
         this.ip = ip;
-        this.type = type;
+        this.deviceType = type;
         this.readcommunity = "public";
         this.writecommunity = "private";
     }
