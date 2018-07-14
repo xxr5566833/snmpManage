@@ -9,6 +9,7 @@ import com.example.demo.snmpServer.Data.Process;
 import com.example.demo.snmpServer.SnmpServer;
 import com.example.demo.snmpServer.SnmpServerCreater;
 import com.example.demo.snmpServer.TrapManager;
+import com.fasterxml.jackson.databind.util.JSONPObject;
 import com.sun.javafx.collections.MappingChange;
 import jdk.nashorn.internal.ir.IfNode;
 import org.apache.tomcat.util.bcel.Const;
@@ -260,6 +261,28 @@ public class Controller {
         return TrapManager.trapCache.elementAt(0).toString();
     }
 
+    @RequestMapping("/getFlow")
+    public HashMap getFlow(@RequestBody Map datamap){
+        String ip = datamap.get("ip").toString();
+        String readcommunity = (String) datamap.get("readcommunity");
+        String writecommunity = (String) datamap.get("writecommunity");
+        int index = (int)datamap.get("index");
+        HashMap<String, Object> map = new HashMap<String, Object>();
+        SnmpServer t = creater.getServer(ip, readcommunity,writecommunity);
+        if(index == -1){
+            int insum = t.getInBound();
+            int outsum = t.getOutBound();
+            map.put("inBound", insum);
+            map.put("outBound", outsum);
+        }
+        else{
+            int in = t.getInBound(index);
+            int out = t.getOutBound(index);
+            map.put("inBound", in);
+            map.put("outBound", out);
+        }
+        return map;
+    }
 
 
 }

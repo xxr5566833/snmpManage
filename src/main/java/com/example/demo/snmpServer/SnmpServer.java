@@ -579,4 +579,56 @@ public class SnmpServer{
         return processes;
     }
 
+    public int getInBound(){
+        Vector<VariableBinding> vbs = null;
+        try{
+            vbs = this.getSubTree(Constant.IfInBound);
+        }catch(Exception e){
+            e.printStackTrace();
+        }
+        int result = 0;
+        for(int i = 0 ; i < vbs.size() ; i++){
+            result += vbs.elementAt(i).getVariable().toInt();
+        }
+        return result;
+    }
+
+    public int getInBound(int index){
+        VariableBinding vb = null;
+        try{
+            OID oid = new OID(Constant.IfInBound);
+            oid.append(index);
+            vb = this.getTreeNode(oid);
+        }catch(Exception e){
+            vb = new VariableBinding();
+        }
+        return vb.getVariable().toInt();
+    }
+
+    public int getOutBound(){
+        Vector<VariableBinding> vbs = null;
+        try{
+            vbs = this.getSubTree(Constant.IfOutBound);
+        }catch(Exception e){
+            e.printStackTrace();
+        }
+        int result = 0;
+        for(int i = 0 ; i < vbs.size() ; i++){
+            result += vbs.elementAt(i).getVariable().toInt();
+        }
+        return result;
+    }
+
+    public int getOutBound(int index){
+        VariableBinding vb = null;
+        try{
+            OID oid = new OID(Constant.IfOutBound);
+            oid.append(index);
+            vb = this.getTreeNode(oid);
+        }catch(Exception e){
+            vb = new VariableBinding();
+        }
+        return vb.getVariable().toInt();
+    }
+
 }
