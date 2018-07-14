@@ -1,4 +1,4 @@
-package com.example.demo.snmpServer.Data;
+package com.example.demo.snmpServer.Data.Type;
 
 public enum ProcessType {
     unknown(1),

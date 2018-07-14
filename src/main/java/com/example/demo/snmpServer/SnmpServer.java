@@ -1,21 +1,16 @@
 package com.example.demo.snmpServer;
 
 import java.io.IOException;
-import java.nio.charset.Charset;
-import java.util.Map;
 import java.util.Vector;
 
 import com.example.demo.snmpServer.Data.*;
 import com.example.demo.snmpServer.Data.Process;
-import com.sun.jmx.snmp.SnmpString;
+import com.example.demo.snmpServer.Data.Type.*;
 import org.snmp4j.*;
 import org.snmp4j.event.ResponseEvent;
 import org.snmp4j.mp.SnmpConstants;
 import org.snmp4j.smi.*;
 import org.snmp4j.transport.DefaultUdpTransportMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-
-import javax.xml.ws.Response;
 
 public class SnmpServer{
     private Snmp snmp = null;
@@ -670,6 +665,30 @@ public class SnmpServer{
         }
         // 默认255.255.255.0
         return "255.255.255.0";
+    }
+    public AddressTranslation[] getATtable(){
+        Vector<VariableBinding> indexvbs = null;
+        Vector<VariableBinding> phyvbs = null;
+        Vector<VariableBinding> netvbs = null;
+        Vector<VariableBinding> typevbs = null;
+        try{
+            indexvbs = this.getSubTree(Constant.ipNetToMediaIfIndex);
+            phyvbs = this.getSubTree(Constant.ipNetToMediaPhy);
+            netvbs = this.getSubTree(Constant.ipNetToMediaNet);
+            typevbs = this.getSubTree(Constant.ipNetToMediaType);
+        }catch(IOException e){
+            e.printStackTrace();
+        }
+        AddressTranslation[] ats = new AddressTranslation[indexvbs.size()];
+        for(int i = 0 ; i < ats.length ; i++){
+            AddressTranslation at = new AddressTranslation();
+            at.setIfIndex(indexvbs.elementAt(i).getVariable().toInt());
+            at.setNetAddress(netvbs.elementAt(i).getVariable().toString());
+            at.setPhyAddress(phyvbs.elementAt(i).getVariable().toString());
+            at.setTranslationType(TranslationType.values()[typevbs.elementAt(i).getVariable().toInt() - 1]);
+            ats[i] = at;
+        }
+        return ats;
     }
 
 }

@@ -64,7 +64,10 @@ public class Constant {
             hrSWRunStatus = {1, 3, 6, 1, 2, 1, 25, 4, 2, 1, 7},
             hrSWRunMemory = {1, 3, 6, 1, 2, 1, 25, 5, 1, 1, 2},
     //地址转换表
-            ipNetToMediaNet = {1, 3, 6, 1, 2, 1, 4, 22, 1, 3};
+            ipNetToMediaNet = {1, 3, 6, 1, 2, 1, 4, 22, 1, 3},
+            ipNetToMediaIfIndex = {1, 3, 6, 1, 2, 1, 4, 22, 1, 1},
+            ipNetToMediaPhy = {1, 3, 6, 1, 2, 1, 4, 22, 1, 2},
+            ipNetToMediaType = {1, 3, 6, 1, 2, 1, 4, 22, 1, 4};
 
 
 

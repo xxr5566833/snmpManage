@@ -1,6 +1,9 @@
 package com.example.demo.snmpServer.Data;
 
 
+import com.example.demo.snmpServer.Data.Type.IFType;
+import com.example.demo.snmpServer.Data.Type.Status;
+
 public class InterFace {
     private int index;
     private String ifDescr;

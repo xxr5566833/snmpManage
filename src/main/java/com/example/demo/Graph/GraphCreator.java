@@ -1,11 +1,12 @@
 package com.example.demo.Graph;
 
 import com.example.demo.snmpServer.Data.*;
+import com.example.demo.snmpServer.Data.Type.DeviceType;
+import com.example.demo.snmpServer.Data.Type.IPRouteType;
 import com.example.demo.snmpServer.SnmpServer;
 import com.example.demo.snmpServer.SnmpServerCreater;
 import org.snmp4j.smi.VariableBinding;
 
-import javax.lang.model.element.VariableElement;
 import java.io.IOException;
 import java.util.Vector;
 

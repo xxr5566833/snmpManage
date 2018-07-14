@@ -1,5 +1,7 @@
 package com.example.demo.snmpServer.Data;
 
+import com.example.demo.snmpServer.Data.Type.DeviceType;
+
 import java.util.Vector;
 
 //被管理的设备，可能之后要根据服务器和交换机，路由器分子类
