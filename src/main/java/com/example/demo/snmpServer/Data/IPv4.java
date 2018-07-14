@@ -133,7 +133,7 @@ public class IPv4 {
         if(result == 0 || result == ~this.mask || this.subnet != (this.ip & this.mask))
             return false;
         return true;
-
     }
+
 
 }

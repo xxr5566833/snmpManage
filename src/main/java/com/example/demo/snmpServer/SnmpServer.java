@@ -25,6 +25,7 @@ public class SnmpServer{
     private TransportMapping trapTransport;
     private Snmp trapSnmp;
     private Device device;
+    private String ip;
     public void initTrapListen(String ip, int port){
         // 设置接收trap的IP和端口
         try {
@@ -74,6 +75,7 @@ public class SnmpServer{
 
     public SnmpServer(String ip, int port, String readcommunity, String writecommunity) {
         // 设置Agent方的IP和端口
+        this.ip = ip;
         targetAddress = GenericAddress.parse("udp:"+ ip + "/" + port);
         this.readcommunity = readcommunity;
         this.writecommunity = writecommunity;
@@ -523,7 +525,13 @@ public class SnmpServer{
         for(int i = 0 ; i < vbs.size() ; i++){
             sum += vbs.elementAt(i).getVariable().toInt();
         }
-        return sum / vbs.size();
+        if(vbs.size() == 0){
+            // 路由器和交换机没有实现这个MIB
+            return 0;
+        }
+        else{
+            return sum / vbs.size();
+        }
     }
 
     public Disk[] collectDisk(){
@@ -629,6 +637,25 @@ public class SnmpServer{
             vb = new VariableBinding();
         }
         return vb.getVariable().toInt();
+    }
+
+    public String getMask(){
+        Vector<VariableBinding> ipvbs = null;
+        Vector<VariableBinding> maskvbs = null;
+        try{
+            ipvbs = this.getSubTree(Constant.IpAdEntAddr);
+            maskvbs = this.getSubTree(Constant.IpAdEntNetmask);
+        }catch(Exception e){
+            e.printStackTrace();
+        }
+        for(int i = 0 ; i < ipvbs.size() ; i++){
+            String ip = ipvbs.elementAt(i).getVariable().toString();
+            if(ip.equals(this.ip)){
+                return maskvbs.elementAt(i).getVariable().toString();
+            }
+        }
+        // 默认255.255.255.0
+        return "255.255.255.0";
     }
 
 }

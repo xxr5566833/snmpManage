@@ -57,8 +57,8 @@ public class Controller {
     }
 
     @RequestMapping("/getNetGraph")
-    public GraphData getNetGraph(){
-        Graph g = GraphCreator.createGraph("127.0.0.1");
+    public GraphData getNetGraph(@RequestBody String obj){
+        Graph g = GraphCreator.createGraph(obj);
         return g.toData();
     }
 

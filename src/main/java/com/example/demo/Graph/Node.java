@@ -5,6 +5,9 @@ import com.example.demo.snmpServer.Data.IP;
 import com.example.demo.snmpServer.Data.IPv4;
 import com.example.demo.snmpServer.SnmpServer;
 import com.example.demo.snmpServer.SnmpServerCreater;
+import org.snmp4j.smi.OID;
+import org.snmp4j.smi.OctetString;
+import org.snmp4j.smi.Variable;
 import org.snmp4j.smi.VariableBinding;
 
 import java.io.IOException;
@@ -18,6 +21,7 @@ public class Node {
     private Vector<Edge> edges;
     private String name;
     private int index;
+    private static int tmpindex = 1;
 
     public Node(String mainIp, NodeType type){
         this.mainIp = mainIp;
@@ -30,7 +34,7 @@ public class Node {
         try {
             vb = t.getTreeNode(Constant.SysName);
         }catch(IOException e){
-            vb = new VariableBinding();
+            vb = new VariableBinding(new OID(), new OctetString("S" + tmpindex++));
         }
 
         this.name = vb.getVariable().toString();

@@ -3,7 +3,10 @@ package com.example.demo.Graph;
 import com.example.demo.snmpServer.Data.*;
 import com.example.demo.snmpServer.SnmpServer;
 import com.example.demo.snmpServer.SnmpServerCreater;
+import org.snmp4j.smi.VariableBinding;
 
+import javax.lang.model.element.VariableElement;
+import java.io.IOException;
 import java.util.Vector;
 
 public class GraphCreator {
@@ -27,11 +30,28 @@ public class GraphCreator {
                         break;
                     }
                 }
-                // 还有bug 去网络实验室改
             }
             // 如果发现了默认网关，那么一切顺利，如果没有发现默认网关，那么说明这个设备就是在一个由交换机连接的子网内
             if(n.getType() == NodeType.host){
-                // 此时就需要
+                // 此时就需要查看地址转换表，选择与自己在同一网段的IP，检查是否是路由器
+                Vector<VariableBinding> vbs = null;
+                try{
+                    vbs = t.getSubTree(Constant.ipNetToMediaNet);
+                }catch(IOException e){
+                    e.printStackTrace();
+                }
+                for(int i = 0 ; i < vbs.size() ; i++){
+                    String tmpip = vbs.elementAt(i).getVariable().toString();
+                    if(IPv4.isSameSubnet(tmpip, n.getMainIp(), t.getMask()) && !tmpip.endsWith(".255")){
+                        // 只看在同一网段的主机以及那些地址不是.255的
+                        SnmpServer tmpserver = SnmpServerCreater.getServer(tmpip);
+                        if(tmpserver.isValid() && tmpserver.getDeviceType() == DeviceType.router){
+                            // 这个地址就是我们想要的地址
+                            n = new Node(tmpip, NodeType.gateway, 0);
+                            break;
+                        }
+                    }
+                }
             }
         }
         else{
@@ -44,24 +64,23 @@ public class GraphCreator {
                 IPRoute ipr = ips[i];
                 if(ipr.getIpRouteType() == IPRouteType.invalid)
                     continue;
-                if(ipr.getIpRouteType() == IPRouteType.direct) {
-                    // 直接相连还要分情况
                     String nexthop = ipr.getIpRouteNextHop();
                     // 首先去掉这些对生成网络拓扑无用的情况
                     if(nexthop.equals("127.0.0.1") || nexthop.equals("0.0.0.0"))
                         continue;
-
-                }
-                else{
-                    String nexthop = ipr.getIpRouteNextHop();
-                    if (!graph.isRepeated(nexthop)) {
-                        // IP地址不重复，那么相当于发现新设备
-                        Node newn = new Node(nexthop, NodeType.gateway,  graph.getNodeNum());
-                        graph.addNode(newn);
-                        graph.addEdge(n.getIndex(), newn.getIndex());
+                    if(ipr.getIpRouteType() == IPRouteType.direct)
+                        continue;
+                    // 对于交换机和路由器来说，非direct的路由的下一跳一定是一个路由器的地址
+                    // 过滤掉nexthop为0.0.0.0 和127.0.0.1
+                    SnmpServer server = SnmpServerCreater.getServer(nexthop);
+                    if(server.isValid()){
+                        // 设置n的ip
+                        n = new Node(nexthop, NodeType.gateway, 0);
+                        break;
+                        // 此时ip一定是一个路由器的ip
                     }
-                }
             }
+
         }
         /*t = SnmpServerCreater.getServer(ip);
         n.setIps(t.getOwnIp());*/
@@ -69,7 +88,8 @@ public class GraphCreator {
         dfs(n, graph);
         return graph;
     }
-
+    // TODO 有个问题 当两个不同网段设备连接同一交换机的不同vlan借口时，这个算法会把它们识别为它们俩分别与一个交换机相连，也就是识别为两个交换机，而实际上只有一个交换机只不过是两个不同的vlan
+    // TODO 问题是交换机没有ip地址，信息无法获取，所以这个问题不知道怎么解决
     private static void parseSubnet(Node n, Graph graph, String ip, String netmask){
         // 对子网进行链路层分析，找出交换机和主机
         // 具体做法就是根据子网掩码和网络号，遍历除了在路由器中出现过的所有的可能的IP，如果发现可以获取这个IP的信息，那么就确定这个是一个相连的设备
@@ -108,6 +128,7 @@ public class GraphCreator {
                         }
                     }
                 }
+
         for(int i = 0 ; i < hosts.size() ; i++){
              Node hostn = hosts.elementAt(i);
              // 遍历交换机找到管理它的交换机
@@ -132,7 +153,6 @@ public class GraphCreator {
                 }
             }
         }
-
         for(int i  = 0 ; i < exchanges.size() ; i++){
                     //遍历交换机找到管理它的交换机和它管理的交换机
             Node exchange1 = exchanges.elementAt(i);
@@ -156,6 +176,17 @@ public class GraphCreator {
                 }
             }
         }
+        if(exchanges.size() == 0){
+            // 如果发现不了交换机，说明交换机没有IP地址只是一个二层交换机而路由器是无法直接连到交换机上的，所以这里需要fake一个交换机
+            Node fake = new Node("0.0.0.0", NodeType.exchange);
+            for(int i = 0 ; i < hosts.size() ; i ++){
+                Node host = hosts.elementAt(i);
+                host.addEdge(fake);
+                fake.addEdge(host);
+            }
+            exchanges.add(fake);
+        }
+
         // 设备和交换机的连接信息都已经设置完毕，接下来就是添加到graph中
         for(int i = 0 ; i < hosts.size() ; i++){
                     Node host = hosts.elementAt(i);
@@ -214,7 +245,8 @@ public class GraphCreator {
             return ;
         SnmpServer t = SnmpServerCreater.getServer(n.getMainIp());
         DeviceType type = t.getDeviceType();
-
+        // 对于同一个路由器来说，不要重复查询多个相同子网
+        Vector<String> subnetips = new Vector<>();
         // 首先是自己的ip信息
         Vector<IP> ips = t.getOwnIp();
         graph.setIps(n, ips);
@@ -279,7 +311,17 @@ public class GraphCreator {
                         continue;
                     }
                     else{
-                        parseSubnet(n, graph, ipr.getIpRouteDest(), ipr.getIpRouteMask());
+                        boolean flag = true;
+                        for(int j = 0 ; j < subnetips.size() ; j++){
+                            if(subnetips.elementAt(j).equals(ipr.getIpRouteDest())){
+                                flag = false;
+                                break;
+                            }
+                        }
+                        if(flag){
+                            parseSubnet(n, graph, ipr.getIpRouteDest(), ipr.getIpRouteMask());
+                            subnetips.add(ipr.getIpRouteDest());
+                        }
                     }
                 }
                 else {
@@ -292,7 +334,17 @@ public class GraphCreator {
                         } else {
                             // 说明是子网，因为子网号不可能为全1
                             // 接下来需要解析这个子网
-                            parseSubnet(n, graph, ipr.getIpRouteDest(), ipr.getIpRouteMask());
+                            boolean flag = true;
+                            for(int j = 0 ; j < subnetips.size() ; j++){
+                                if(subnetips.elementAt(j).equals(ipr.getIpRouteDest())){
+                                    flag = false;
+                                    break;
+                                }
+                            }
+                            if(flag){
+                                parseSubnet(n, graph, ipr.getIpRouteDest(), ipr.getIpRouteMask());
+                                subnetips.add(ipr.getIpRouteDest());
+                            }
                         }
                     }
                 }
