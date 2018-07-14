@@ -17,6 +17,9 @@ public class Graph {
         nodes = new Vector<Node>();
         ip2Node = new HashMap();
     }
+    public Vector<Node> getHosts(){
+        return this.hosts;
+    }
 
     public GraphData toData(){
         NodeData[] ns = new NodeData[this.nodes.size()];

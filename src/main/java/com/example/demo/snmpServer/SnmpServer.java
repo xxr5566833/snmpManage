@@ -413,7 +413,21 @@ public class SnmpServer{
         }
         return ips;
     }
-
+    public Vector<IP> getTCPconnection(){
+        Vector<VariableBinding> ipaddrs = null;
+        try {
+            ipaddrs = this.getSubTree(Constant.TCPConnectionRemoteAddress);
+        }catch(IOException e){
+            e.printStackTrace();
+        }
+        Vector<IP> ips = new Vector<IP>();
+        for(int i = 0 ; i < ipaddrs.size() ; i++){
+            IP ip  = new IP();
+            ip.setIpAddress(ipaddrs.elementAt(i).getVariable().toString());
+            ips.add(ip);
+        }
+        return ips;
+    }
     public DeviceType getDeviceType(){
         if(this.device.getType() == DeviceType.none){
             //首先判断ipForwarding
