@@ -236,7 +236,7 @@ public class Controller {
         String ip = datamap.get("ip").toString();
         String readcommunity = (String) datamap.get("readcommunity");
         String writecommunity = (String) datamap.get("writecommunity");
-        SnmpServer t = creater.getServer(ip, readcommunity, writecommunity);
+        SnmpServer t = SnmpServerCreater.getServer(ip, readcommunity, writecommunity);
         return t.getIpRoute();
     }
     @RequestMapping("/setAdminStatus")
@@ -251,7 +251,7 @@ public class Controller {
         String ip = datamap.get("ip").toString();
         String readcommunity = (String)datamap.get("readcommunity");
         String writecommunity = (String)datamap.get("writecommunity");
-        SnmpServer t = creater.getServer(ip, readcommunity,writecommunity);
+        SnmpServer t = SnmpServerCreater.getServer(ip, readcommunity,writecommunity);
         result = t.setStatus((int)datamap.get("index"), (int)datamap.get("status"));
         return result;
     }
@@ -268,18 +268,18 @@ public class Controller {
         String writecommunity = (String) datamap.get("writecommunity");
         int index = (int)datamap.get("index");
         HashMap<String, Object> map = new HashMap<String, Object>();
-        SnmpServer t = creater.getServer(ip, readcommunity,writecommunity);
+        SnmpServer t = SnmpServerCreater.getServer(ip, readcommunity,writecommunity);
         if(index == -1){
             int insum = t.getInBound();
             int outsum = t.getOutBound();
-            map.put("inBound", insum);
-            map.put("outBound", outsum);
+            map.put("inBound", String.format("%.2f", (double)insum / (1024.0 * 1024.0)));
+            map.put("outBound", String.format("%.2f", (double)outsum / (1024.0 * 1024.0)));
         }
         else{
             int in = t.getInBound(index);
             int out = t.getOutBound(index);
-            map.put("inBound", in);
-            map.put("outBound", out);
+            map.put("inBound", String.format("%2.f", (double)in / (1024.0 * 1024.0)));
+            map.put("outBound", String.format("%.2f", (double)out / (1024.0 * 1024.0)));
         }
         return map;
     }

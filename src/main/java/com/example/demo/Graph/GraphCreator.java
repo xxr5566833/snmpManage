@@ -29,11 +29,39 @@ public class GraphCreator {
                 }
                 // 还有bug 去网络实验室改
             }
+            // 如果发现了默认网关，那么一切顺利，如果没有发现默认网关，那么说明这个设备就是在一个由交换机连接的子网内
+            if(n.getType() == NodeType.host){
+                // 此时就需要
+            }
         }
         else{
             // 说明是路由器或者是三层交换机
-            // 路由器的话可以直接进入图遍历算法了，但是交换机怎么办
+            // 路由器的话可以直接进入图遍历算法了，但是交换机怎么办，这里我们不管是路由器还是交换机遍历他的路由表，因为路交换机的路由表里一定由路由器的地址，而路由器的地址中没有交换机的地址
+            // 我们可以利用这个性质，统一把当前IP 设置为路由表中可以找到的IP且该IP对应的设备不是主机，那么该设备一定是路由器
             n = new Node(ip, NodeType.gateway, 0);
+            IPRoute[] ips = t.getIpRoute();
+            for(int i = 0 ; i < ips.length ; i++){
+                IPRoute ipr = ips[i];
+                if(ipr.getIpRouteType() == IPRouteType.invalid)
+                    continue;
+                if(ipr.getIpRouteType() == IPRouteType.direct) {
+                    // 直接相连还要分情况
+                    String nexthop = ipr.getIpRouteNextHop();
+                    // 首先去掉这些对生成网络拓扑无用的情况
+                    if(nexthop.equals("127.0.0.1") || nexthop.equals("0.0.0.0"))
+                        continue;
+                    
+                }
+                else{
+                    String nexthop = ipr.getIpRouteNextHop();
+                    if (!graph.isRepeated(nexthop)) {
+                        // IP地址不重复，那么相当于发现新设备
+                        Node newn = new Node(nexthop, NodeType.gateway,  graph.getNodeNum());
+                        graph.addNode(newn);
+                        graph.addEdge(n.getIndex(), newn.getIndex());
+                    }
+                }
+            }
         }
         /*t = SnmpServerCreater.getServer(ip);
         n.setIps(t.getOwnIp());*/
