@@ -43,6 +43,9 @@ public class Constant {
             IpAdEntNetmask = {1, 3, 6, 1, 2, 1, 4, 20, 1, 3},
             IpAdEntReasmMaxSize = {1, 3, 6, 1, 2, 1, 4, 20, 1, 5},
 
+    //TCP连接远程地址
+            TCPConnectionRemoteAddress = {1, 3, 6, 1, 2, 1, 6, 13, 1, 4},
+
     //相连设备的ip
             atNetAddress = {1, 3, 6, 1, 2, 1, 3, 1, 1, 3},
 

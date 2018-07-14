@@ -11,7 +11,7 @@ import java.io.IOException;
 import java.util.Vector;
 
 public class GraphCreator {
-
+    private static Graph mygraph;
     public static Graph createGraph(String ip){
         Graph graph = new Graph();
         // 通过ip创建对应的节点
@@ -87,7 +87,12 @@ public class GraphCreator {
         n.setIps(t.getOwnIp());*/
         graph.addNode(n);
         dfs(n, graph);
+        graph.setTypeNode();
+        mygraph = graph;
         return graph;
+    }
+    public static Graph getMygraph(){
+        return mygraph;
     }
     // TODO 有个问题 当两个不同网段设备连接同一交换机的不同vlan借口时，这个算法会把它们识别为它们俩分别与一个交换机相连，也就是识别为两个交换机，而实际上只有一个交换机只不过是两个不同的vlan
     // TODO 问题是交换机没有ip地址，信息无法获取，所以这个问题不知道怎么解决

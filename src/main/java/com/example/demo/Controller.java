@@ -4,6 +4,7 @@ package com.example.demo;
 import com.example.demo.Graph.Graph;
 import com.example.demo.Graph.GraphCreator;
 import com.example.demo.Graph.GraphData;
+import com.example.demo.Graph.Node;
 import com.example.demo.snmpServer.Data.*;
 import com.example.demo.snmpServer.Data.Process;
 import com.example.demo.snmpServer.Data.Type.IFType;
@@ -259,6 +260,25 @@ public class Controller {
     @RequestMapping("/getTraps")
     public String getTraps(){
         return TrapManager.trapCache.elementAt(0).toString();
+    }
+
+    @RequestMapping("/getTCP")
+    public PCdata[] getTCP(){
+        Graph g = GraphCreator.createGraph("127.0.0.1");
+        Vector<Node> hosts=g.getHosts();
+        int hostsLength=hosts.size();
+        PCdata[] PCs=new PCdata[hostsLength];
+        for(int j=0;j<hostsLength;j++){
+            PCdata PCA=new PCdata();
+            String name=hosts.elementAt(j).getName();
+            String IP=hosts.elementAt(j).getMainIp();
+            SnmpServer t = SnmpServerCreater.getServer(IP,"public","private");
+            PC onePC=new PC(name,IP,hosts,t.getTCPconnection());
+            PCA.setName(name);
+            PCA.setConnection(onePC.getConnection());
+            PCs[j]=PCA;
+        }
+        return PCs;
     }
 
     @RequestMapping("/getFlow")
