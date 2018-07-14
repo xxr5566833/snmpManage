@@ -50,7 +50,7 @@ public class GraphCreator {
                     // 首先去掉这些对生成网络拓扑无用的情况
                     if(nexthop.equals("127.0.0.1") || nexthop.equals("0.0.0.0"))
                         continue;
-                    
+
                 }
                 else{
                     String nexthop = ipr.getIpRouteNextHop();

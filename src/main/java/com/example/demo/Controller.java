@@ -272,14 +272,14 @@ public class Controller {
         if(index == -1){
             int insum = t.getInBound();
             int outsum = t.getOutBound();
-            map.put("inBound", String.format("%.2f", (double)insum / (1024.0 * 1024.0)));
-            map.put("outBound", String.format("%.2f", (double)outsum / (1024.0 * 1024.0)));
+            map.put("inBound", (double)insum / (1024.0 * 1024.0));
+            map.put("outBound", (double)outsum / (1024.0 * 1024.0));
         }
         else{
             int in = t.getInBound(index);
             int out = t.getOutBound(index);
-            map.put("inBound", String.format("%2.f", (double)in / (1024.0 * 1024.0)));
-            map.put("outBound", String.format("%.2f", (double)out / (1024.0 * 1024.0)));
+            map.put("inBound", (double)in / (1024.0 * 1024.0));
+            map.put("outBound", (double)out / (1024.0 * 1024.0));
         }
         return map;
     }
