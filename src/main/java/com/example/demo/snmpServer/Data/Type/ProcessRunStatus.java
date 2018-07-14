@@ -1,4 +1,4 @@
-package com.example.demo.snmpServer.Data;
+package com.example.demo.snmpServer.Data.Type;
 
 public enum ProcessRunStatus {
     running(1), runnable(2), notRunnable(3), invalid(4);

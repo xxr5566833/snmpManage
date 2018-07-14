@@ -1,4 +1,4 @@
-package com.example.demo.snmpServer.Data;
+package com.example.demo.snmpServer.Data.Type;
 
 //定义interface的type的枚举变量
 public enum IFType{

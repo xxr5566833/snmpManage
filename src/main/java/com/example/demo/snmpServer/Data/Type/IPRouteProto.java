@@ -1,4 +1,4 @@
-package com.example.demo.snmpServer.Data;
+package com.example.demo.snmpServer.Data.Type;
 
 public enum IPRouteProto {
     other(1),

@@ -1,5 +1,8 @@
 package com.example.demo.snmpServer.Data;
 
+import com.example.demo.snmpServer.Data.Type.IPRouteProto;
+import com.example.demo.snmpServer.Data.Type.IPRouteType;
+
 public class IPRoute {
     private String ipRouteDest;
     private int ipRouteIfIndex;

@@ -1,5 +1,8 @@
 package com.example.demo.snmpServer.Data;
 
+import com.example.demo.snmpServer.Data.Type.ProcessRunStatus;
+import com.example.demo.snmpServer.Data.Type.ProcessType;
+
 public class Process {
     int index;
     String name;

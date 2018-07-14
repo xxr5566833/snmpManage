@@ -1,0 +1,21 @@
+Manifest-Version: 1.0
+Class-Path: jackson-datatype-jsr310-2.9.6.jar jackson-databind-2.9.6.j
+ ar spring-core-5.0.7.RELEASE.jar logback-classic-1.2.3.jar slf4j-api-
+ 1.7.25.jar spring-boot-starter-web-2.0.3.RELEASE.jar validation-api-2
+ .0.1.Final.jar log4j-api-2.10.0.jar jackson-datatype-jdk8-2.9.6.jar s
+ nmp4j-2.5.0.jar tomcat-embed-websocket-8.5.31.jar javax.annotation-ap
+ i-1.3.2.jar jjwt-0.6.0.jar jackson-annotations-2.9.0.jar spring-boot-
+ starter-2.0.3.RELEASE.jar spring-boot-autoconfigure-2.0.3.RELEASE.jar
+  spring-boot-devtools-2.0.3.RELEASE.jar spring-webmvc-5.0.7.RELEASE.j
+ ar spring-boot-starter-json-2.0.3.RELEASE.jar spring-jcl-5.0.7.RELEAS
+ E.jar log4j-to-slf4j-2.10.0.jar spring-aop-5.0.7.RELEASE.jar snakeyam
+ l-1.19.jar tomcat-embed-el-8.5.31.jar jboss-logging-3.3.2.Final.jar c
+ lassmate-1.3.4.jar jackson-module-parameter-names-2.9.6.jar jackson-c
+ ore-2.9.6.jar spring-web-5.0.7.RELEASE.jar hibernate-validator-6.0.10
+ .Final.jar spring-boot-2.0.3.RELEASE.jar spring-boot-starter-tomcat-2
+ .0.3.RELEASE.jar spring-context-5.0.7.RELEASE.jar log4j-1.2.14.jar sp
+ ring-expression-5.0.7.RELEASE.jar logback-core-1.2.3.jar tomcat-embed
+ -core-8.5.31.jar jul-to-slf4j-1.7.25.jar spring-beans-5.0.7.RELEASE.j
+ ar spring-boot-starter-logging-2.0.3.RELEASE.jar
+Main-Class: com.example.demo.DemoApplication
+

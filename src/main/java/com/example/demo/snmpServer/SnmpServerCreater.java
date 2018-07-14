@@ -1,7 +1,5 @@
 package com.example.demo.snmpServer;
 
-import com.example.demo.snmpServer.Data.DeviceType;
-
 import java.util.HashMap;
 import java.util.Map;
 

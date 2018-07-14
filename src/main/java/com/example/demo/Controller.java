@@ -6,36 +6,27 @@ import com.example.demo.Graph.GraphCreator;
 import com.example.demo.Graph.GraphData;
 import com.example.demo.snmpServer.Data.*;
 import com.example.demo.snmpServer.Data.Process;
+import com.example.demo.snmpServer.Data.Type.IFType;
+import com.example.demo.snmpServer.Data.Type.Status;
 import com.example.demo.snmpServer.SnmpServer;
 import com.example.demo.snmpServer.SnmpServerCreater;
 import com.example.demo.snmpServer.TrapManager;
-import com.fasterxml.jackson.databind.util.JSONPObject;
-import com.sun.javafx.collections.MappingChange;
-import jdk.nashorn.internal.ir.IfNode;
-import org.apache.tomcat.util.bcel.Const;
-import org.snmp4j.Snmp;
 import org.snmp4j.smi.*;
 import org.springframework.web.bind.annotation.*;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.xml.bind.DatatypeConverter;
 import java.io.IOException;
-import java.net.InterfaceAddress;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Vector;
-import java.util.concurrent.atomic.AtomicLong;
-
-import static com.sun.jmx.snmp.SnmpStatusException.noSuchObject;
 
 @RestController
 public class Controller {
     private static SnmpServerCreater creater = new SnmpServerCreater();
 
     @RequestMapping("/test")
-    public Process[] test (){
+    public AddressTranslation[] test (){
         SnmpServer t = creater.getServer("127.0.0.1", "public","private");
-        return t.getProcesses();
+        return t.getATtable();
     }
 
     @RequestMapping("/getDisks")
@@ -45,6 +36,15 @@ public class Controller {
         String writecommunity = (String)datamap.get("writecommunity");
         SnmpServer t = creater.getServer(ip, readcommunity,writecommunity);
         return t.collectDisk();
+    }
+
+    @RequestMapping("/getTranslationTable")
+    public AddressTranslation[] getTranslationTable(@RequestBody Map datamap){
+        String ip = (String)datamap.get("ip");
+        String readcommunity = (String)datamap.get("readcommunity");
+        String writecommunity = (String)datamap.get("writecommunity");
+        SnmpServer t = creater.getServer(ip, readcommunity,writecommunity);
+        return t.getATtable();
     }
 
     @RequestMapping("/getProcesses")

@@ -1,4 +1,4 @@
-package com.example.demo.snmpServer.Data;
+package com.example.demo.snmpServer.Data.Type;
 
 public enum DeviceType {
     // 根据测试结果router也包含了三层交换机
