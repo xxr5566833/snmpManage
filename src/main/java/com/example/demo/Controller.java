@@ -314,17 +314,20 @@ public class Controller {
         }
         // 有的接口没有inbound 比如Cellular0/0，此时就单独赋值
         // 接下来分析每个接口所属的vlan
-        Vector<VariableBinding> vbs = new Vector<>();
-        try{
-            vbs = t.getSubTree(Constant.vlanPorts);
-        }catch(Exception e){
-            e.printStackTrace();
-        }
-        for(int i = 0 ; i < vbs.size() ; i++){
-            Vlan vlan = new Vlan(i + 1, vbs.elementAt(i).getVariable().toString());
-            Vector<Integer> ports = vlan.getPorts();
-            for(int j = 0 ; j < ports.size() ; j++){
-                interFaces[ports.elementAt(j) - 1].setVlanIndex(i + 1);
+        if(t.getDeviceType() != DeviceType.host) {
+            // 如果不是主机，那么尝试获取这个私有MIB库
+            Vector<VariableBinding> vbs = new Vector<>();
+            try {
+                vbs = t.getSubTree(Constant.vlanPorts);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            for (int i = 0; i < vbs.size(); i++) {
+                Vlan vlan = new Vlan(i + 1, vbs.elementAt(i).getVariable().toString());
+                Vector<Integer> ports = vlan.getPorts();
+                for (int j = 0; j < ports.size(); j++) {
+                    interFaces[ports.elementAt(j) - 1].setVlanIndex(i + 1);
+                }
             }
         }
         return interFaces;
