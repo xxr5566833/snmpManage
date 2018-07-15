@@ -248,6 +248,10 @@ public class Controller {
         String writecommunity = (String)datamap.get("writecommunity");
         SnmpServer t = creater.getServer(ip, readcommunity,writecommunity);
         int interfacenum = t.getVlanBegin();
+        if(interfacenum == -1){
+            // 说明没有vlan
+            interfacenum = t.getInterfaceNum();
+        }
         InterFace[] interFaces = new InterFace[interfacenum];
         Vector<VariableBinding> ifdescrvbs = null;
         Vector<VariableBinding> ifindexvbs = null;
