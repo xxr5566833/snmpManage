@@ -25,9 +25,84 @@ public class Controller {
     private static SnmpServerCreater creater = new SnmpServerCreater();
 
     @RequestMapping("/test")
-    public AddressTranslation[] test (){
-        SnmpServer t = creater.getServer("127.0.0.1", "public","private");
-        return t.getATtable();
+    public InterFace[] test (){
+        SnmpServer t = creater.getServer("192.168.2.2", "public","private");
+        int interfacenum = t.getInterfaceNum();
+        InterFace[] interFaces = new InterFace[interfacenum];
+        Vector<VariableBinding> ifdescrvbs = null;
+        Vector<VariableBinding> ifindexvbs = null;
+        Vector<VariableBinding> iftypevbs = null;
+        Vector<VariableBinding> ifmtuvbs = null;
+        Vector<VariableBinding> ifspeedvbs = null;
+        Vector<VariableBinding> ifphysaddressvbs = null;
+        Vector<VariableBinding> ifadminstatusvbs = null;
+        Vector<VariableBinding> iflastchangevbs = null;
+        Vector<VariableBinding> ifopestatusvbs = null;
+        Vector<VariableBinding> ifinboundvbs = null;
+        Vector<VariableBinding> ifoutboundvbs = null;
+        // 得到接口数量后，开始获取每一组信息
+        try {
+            ifdescrvbs = t.getSubTree(Constant.IfDescr);
+            ifindexvbs = t.getSubTree(Constant.IfIndex);
+            iftypevbs = t.getSubTree(Constant.IfType);
+            ifmtuvbs = t.getSubTree(Constant.IfMtu);
+            ifspeedvbs = t.getSubTree(Constant.IfSpeed);
+            ifphysaddressvbs = t.getSubTree(Constant.IfPhysAddress);
+            ifadminstatusvbs = t.getSubTree(Constant.IfAdminStatus);
+            ifopestatusvbs = t.getSubTree(Constant.IfOperStatus);
+            iflastchangevbs = t.getSubTree(Constant.IfLastChange);
+            ifinboundvbs = t.getSubTree(Constant.IfInBound);
+            ifoutboundvbs = t.getSubTree(Constant.IfOutBound);
+        }catch(IOException e){
+            e.printStackTrace();
+        }
+        for(int i = 0 ; i < interfacenum ; i++){
+            InterFace inter = new InterFace();
+            inter.setIndex(ifindexvbs.elementAt(i).getVariable().toInt());
+            inter.setIfAdminStatus(Status.values()[ifadminstatusvbs.elementAt(i).getVariable().toInt()]);
+            // 对于ifdescr 需要特别区分是否以Octet的String形式给出
+            String descr = ifdescrvbs.elementAt(i).getVariable().toString();
+            // TODO: 目前给出的判断方法是看index为2的位置是否是: 如果有更充要的条件，则改之
+            if(descr.charAt(2) == ':')
+                inter.setIfDescr(SnmpServer.octetStr2Readable(descr));
+            else{
+                inter.setIfDescr(descr);
+            }
+            if(descr.substring(0, 4).equals("Vlan"))
+                break;
+            // TODO: 这里应该用时间戳类而不是String
+            inter.setIfLastChange(iflastchangevbs.elementAt(i).getVariable().toString());
+            inter.setIfMtu(ifmtuvbs.elementAt(i).getVariable().toInt());
+            inter.setIfOperStatus(Status.values()[ifopestatusvbs.elementAt(i).getVariable().toInt()]);
+            inter.setIfPhysAddress(ifphysaddressvbs.elementAt(i).getVariable().toString());
+            inter.setIfSpeed(ifspeedvbs.elementAt(i).getVariable().toInt());
+            inter.setIfType(IFType.int2Type(iftypevbs.elementAt(i).getVariable().toInt()));
+            // 有的接口没有实现inbound和outbound
+            if(inter.getIfDescr().length() >= 8 && inter.getIfDescr().substring(0, 8).equals("Cellular")){
+                ifinboundvbs.add(new VariableBinding(iftypevbs.elementAt(i).getOid(), new Integer32(0)));
+                ifoutboundvbs.add(new VariableBinding(iftypevbs.elementAt(i).getOid(), new Integer32(0)));
+            }
+            inter.setInBound(ifinboundvbs.elementAt(i).getVariable().toLong());
+            inter.setOutBound(ifoutboundvbs.elementAt(i).getVariable().toLong());
+            interFaces[i] = inter;
+        }
+        // 有的接口没有inbound 比如Cellular0/0，此时就单独赋值
+        // 接下来分析每个接口所属的vlan
+        Vector<VariableBinding> vbs = new Vector<>();
+        try{
+            vbs = t.getSubTree(Constant.vlanPorts);
+        }catch(Exception e){
+            e.printStackTrace();
+        }
+        for(int i = 0 ; i < vbs.size() ; i++){
+            Vlan vlan = new Vlan(i + 1, vbs.elementAt(i).getVariable().toString());
+            Vector<Integer> ports = vlan.getPorts();
+            for(int j = 0 ; j < ports.size() ; j++){
+                interFaces[ports.elementAt(j) - 1].setVlanIndex(i + 1);
+            }
+        }
+        return interFaces;
+
     }
 
     @RequestMapping("/getDisks")
@@ -91,7 +166,7 @@ public class Controller {
         return t.getSysInfo();
     }
     @RequestMapping("/getVlan")
-    public InterFace[] getVlans(@RequestBody Map datamap){
+    public Vlan[] getVlans(@RequestBody Map datamap){
         String ip = datamap.get("ip").toString();
         String readcommunity = (String)datamap.get("readcommunity");
         String writecommunity = (String)datamap.get("writecommunity");
@@ -108,6 +183,7 @@ public class Controller {
         Vector<VariableBinding> ifopestatusvbs = null;
         Vector<VariableBinding> ifinboundvbs = null;
         Vector<VariableBinding> ifoutboundvbs = null;
+        Vector<VariableBinding> ports = null;
         // 得到接口数量后，开始获取每一组信息
         try {
             OID descroid = new OID(Constant.IfDescr).append(vlanbeginindex);
@@ -133,12 +209,13 @@ public class Controller {
             ifinboundvbs = t.getSubTree(inboundoid, leftlength);
             OID outboundoid = new OID(Constant.IfOutBound).append(vlanbeginindex);
             ifoutboundvbs = t.getSubTree(outboundoid, leftlength);
+            ports = t.getSubTree(Constant.vlanPorts);
         }catch(IOException e){
             e.printStackTrace();
         }
-        InterFace[] vlans = new Vlan[ifdescrvbs.size()];
+        Vlan[] vlans = new Vlan[ifdescrvbs.size()];
         for(int i = 0 ; i < ifdescrvbs.size() ; i++){
-            InterFace inter = new Vlan();
+            Vlan inter = new Vlan(i + 1, ports.elementAt(i).getVariable().toString());
             inter.setIndex(ifindexvbs.elementAt(i).getVariable().toInt());
             inter.setIfAdminStatus(Status.values()[ifadminstatusvbs.elementAt(i).getVariable().toInt()]);
             // 对于ifdescr 需要特别区分是否以Octet的String形式给出
@@ -170,7 +247,7 @@ public class Controller {
         String readcommunity = (String)datamap.get("readcommunity");
         String writecommunity = (String)datamap.get("writecommunity");
         SnmpServer t = creater.getServer(ip, readcommunity,writecommunity);
-        int interfacenum = t.getInterfaceNum();
+        int interfacenum = t.getVlanBegin();
         InterFace[] interFaces = new InterFace[interfacenum];
         Vector<VariableBinding> ifdescrvbs = null;
         Vector<VariableBinding> ifindexvbs = null;
@@ -228,6 +305,20 @@ public class Controller {
             interFaces[i] = inter;
         }
         // 有的接口没有inbound 比如Cellular0/0，此时就单独赋值
+        // 接下来分析每个接口所属的vlan
+        Vector<VariableBinding> vbs = new Vector<>();
+        try{
+            vbs = t.getSubTree(Constant.vlanPorts);
+        }catch(Exception e){
+            e.printStackTrace();
+        }
+        for(int i = 0 ; i < vbs.size() ; i++){
+            Vlan vlan = new Vlan(i + 1, vbs.elementAt(i).getVariable().toString());
+            Vector<Integer> ports = vlan.getPorts();
+            for(int j = 0 ; j < ports.size() ; j++){
+                interFaces[ports.elementAt(j) - 1].setVlanIndex(i + 1);
+            }
+        }
         return interFaces;
     }
 

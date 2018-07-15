@@ -16,6 +16,15 @@ public class InterFace {
     private String ifLastChange;
     private long inBound;
     private long outBound;
+    private int vlanIndex;
+
+    public int getVlanIndex() {
+        return vlanIndex;
+    }
+
+    public void setVlanIndex(int vlanIndex) {
+        this.vlanIndex = vlanIndex;
+    }
 
     public String getInBound() {
         double result =(double)inBound / (1024.0 * 1024.0);
