@@ -139,7 +139,7 @@ public class GraphCreator {
              Node hostn = hosts.elementAt(i);
              // 遍历交换机找到管理它的交换机
             for(int j = 0 ; j < exchanges.size() ; j++){
-                Node exchangen = exchanges.elementAt(i);
+                Node exchangen = exchanges.elementAt(j);
                 if(exchangen.isSameSubnet(hostn.getMainIp())){
                     // 接下来还需要检查是不是当前交换机比之前主机已经连接的交换机的范围更小
                     Vector<Edge> edges = hostn.getEdges();
@@ -164,7 +164,7 @@ public class GraphCreator {
             Node exchange1 = exchanges.elementAt(i);
             for(int j = 0 ; j < exchanges.size() ; j++){
                 if(j != i){
-                    Node exchange2 = exchanges.elementAt(i);
+                    Node exchange2 = exchanges.elementAt(j);
                     if(exchange2.isSameSubnet(exchange1.getMainIp())){
                         // 接下来是管理和被管理的关系
                         Vector<Edge> edges = exchange1.getEdges();
@@ -182,7 +182,7 @@ public class GraphCreator {
                 }
             }
         }
-        if(exchanges.size() == 0){
+        if(exchanges.size() == 0 && hosts.size() != 0){
             // 如果发现不了交换机，说明交换机没有IP地址只是一个二层交换机而路由器是无法直接连到交换机上的，所以这里需要fake一个交换机
             Node fake = new Node("0.0.0.0", NodeType.exchange);
             for(int i = 0 ; i < hosts.size() ; i ++){

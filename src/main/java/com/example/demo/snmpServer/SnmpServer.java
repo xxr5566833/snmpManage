@@ -207,7 +207,6 @@ public class SnmpServer{
             this.getTreeNode(Constant.SysName);
             result = true;
         }catch(Exception e){
-            e.printStackTrace();
             result = false;
         }
         return result;
@@ -377,7 +376,7 @@ public class SnmpServer{
             }
             if(descr.length() >= 4 && descr.substring(0, 4).equals("Vlan")) {
                 System.out.println(descr);
-                return vbs.elementAt(i).getOid().last() - 1;
+                return vbs.elementAt(i ).getOid().last() - 1;
             }
         }
         return -1;
