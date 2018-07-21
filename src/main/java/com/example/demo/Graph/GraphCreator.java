@@ -96,7 +96,7 @@ public class GraphCreator {
     }
     // TODO 有个问题 当两个不同网段设备连接同一交换机的不同vlan借口时，这个算法会把它们识别为它们俩分别与一个交换机相连，也就是识别为两个交换机，而实际上只有一个交换机只不过是两个不同的vlan
     // TODO 问题是交换机没有ip地址，信息无法获取，所以这个问题不知道怎么解决
-    private static void parseSubnet(Node n, Graph graph, String ip, String netmask){
+    private static boolean parseSubnet(Node n, Graph graph, String ip, String netmask){
         // 对子网进行链路层分析，找出交换机和主机
         // 具体做法就是根据子网掩码和网络号，遍历除了在路由器中出现过的所有的可能的IP，如果发现可以获取这个IP的信息，那么就确定这个是一个相连的设备
 
@@ -184,13 +184,7 @@ public class GraphCreator {
         }
         if(exchanges.size() == 0 && hosts.size() != 0){
             // 如果发现不了交换机，说明交换机没有IP地址只是一个二层交换机而路由器是无法直接连到交换机上的，所以这里需要fake一个交换机
-            Node fake = new Node("0.0.0.0", NodeType.exchange);
-            for(int i = 0 ; i < hosts.size() ; i ++){
-                Node host = hosts.elementAt(i);
-                host.addEdge(fake);
-                fake.addEdge(host);
-            }
-            exchanges.add(fake);
+            return false;
         }
 
         // 设备和交换机的连接信息都已经设置完毕，接下来就是添加到graph中
@@ -206,6 +200,7 @@ public class GraphCreator {
             // 因为这些ip都是通过路由器的地址转换表得到的，一定是相连的
             graph.addEdge(n.getIndex(), exchange.getIndex());
         }
+        return true;
 
     }
 
@@ -325,7 +320,15 @@ public class GraphCreator {
                             }
                         }
                         if(flag){
-                            parseSubnet(n, graph, ipr.getIpRouteDest(), ipr.getIpRouteMask());
+                            boolean res = parseSubnet(n, graph, ipr.getIpRouteDest(), ipr.getIpRouteMask());
+                            while(!res){
+                                try {
+                                    Thread.sleep(5000);
+                                }catch(Exception e){
+                                    e.printStackTrace();
+                                }
+                                res = parseSubnet(n, graph, ipr.getIpRouteDest(), ipr.getIpRouteMask());
+                            }
                             subnetips.add(ipr.getIpRouteDest());
                         }
                     }
@@ -348,7 +351,15 @@ public class GraphCreator {
                                 }
                             }
                             if(flag){
-                                parseSubnet(n, graph, ipr.getIpRouteDest(), ipr.getIpRouteMask());
+                                boolean res =  parseSubnet(n, graph, ipr.getIpRouteDest(), ipr.getIpRouteMask());
+                                while(!res){
+                                    try {
+                                        Thread.sleep(5000);
+                                    }catch(Exception e){
+                                        e.printStackTrace();
+                                    }
+                                    res = parseSubnet(n, graph, ipr.getIpRouteDest(), ipr.getIpRouteMask());
+                                }
                                 subnetips.add(ipr.getIpRouteDest());
                             }
                         }
