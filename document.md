@@ -50,11 +50,16 @@
 
 本项目前端使用`Vue.js`作前端展示页面的主要框架，并且为了增加展示效果使用	`bootstrap`框架。
 
+<div align=center>
 ![](/img/vue.png)
+</div>
+
 
 [Vue](https://cn.vuejs.org/)是一套用于构建用户界面的渐进式框架。与其它大型框架不同的是，Vue 被设计为可以自底向上逐层应用。Vue 的核心库只关注视图层，不仅易于上手，还便于与第三方库或既有项目整合。另一方面，当与现代化的工具链以及各种支持类库结合使用时，Vue 也完全能够为复杂的单页应用提供驱动。
 
+<div align=center>
 ![](/img/bootstrap.jpg)
+</div>
 
 [bootstrap](https://getbootstrap.com/)是一个简洁、直观、强悍的前端开发框架，让web开发更迅速、简单。
 
@@ -62,17 +67,24 @@
 
 后端是基于Java的[Snmp4j](http://www.snmp4j.org/)软件包实现对数据的获取，修改的。
 
+<div align=center>
 ![](/img/SNMP4J.png)
+</div>
 
 #### 1.3.3 前后端交互技术选择
 
 前端命令的发出是通过[axios](https://www.npmjs.com/package/axios)实现的，而后端对命令的接收和回复是通过[Springboot](https://spring.io/)实现的
+<div align=center>
+![](/img/springboot.png)
+</div>
 
 #### 1.3.4 整体技术框架
 
 综上，整个程序的大致技术框架如下：
 
+<div align=center>
 ![](/img/programStructure.jpg)
+</div>
 
 ## 2 项目需求分析
 
@@ -89,7 +101,9 @@
 
 ### 3.1 基本功能概述
 
+<div align=center>
 ![](/img/basicFunctions.jpg)
+</div>
 
 可以看到，我们实现的功能大致分为：
 
@@ -345,27 +359,76 @@
 
 举一个例子：
 
+	@RequestMapping("/getTranslationTable")
+    public AddressTranslation[] getTranslationTable(@RequestBody Map datamap){
+        String ip = (String)datamap.get("ip");
+        String readcommunity = (String)datamap.get("readcommunity");
+        String writecommunity = (String)datamap.get("writecommunity");
+        SnmpServer t = creater.getServer(ip, readcommunity,writecommunity);
+        return t.getATtable();
+    }
+对这段代码做一个解释：
 
+* `@RequestMapping("/getTranslationTable")`把/getTranslationTable映射为它下面的这个方法`getTranslationTable`
+* 前端传来的参数会赋给`datamap`，作为后端方法的参数
+* 后端的返回值会传递给前端
 
-### 2.2 后端架构展示
+这是对前后端交互的一个说明实例，想要了解更多的Springboot的使用方法可以查看[官方文档](https://docs.spring.io/spring-boot/docs/current/reference/)或者博客。有很多资料可以参考。
 
-![](后端.jpg)
+### 4.3 后端技术分析
 
-后端使用`Snmp4j`实现Snmp管理功能，使用`springboot`实现前后端交互
+本项目是基于[Snmp4j](http://www.snmp4j.org/)开发包完成对各种数据的获取管理，逻辑判断等。
 
-主要实现了：
+#### 4.3.1 后端文件结构
 
-* Snmp4种读写api
+* `Controller.java` 记录所有前后端交互用到的api
+* `CorsConfig.java` 与跨域请求有关
+* `DemoApplication.java` 项目运行入口
+* `snmpServer`文件夹
+	* `Data`文件夹保存了需要用到的所有数据结构，这里不展开了
+	* `SnmpServer.java`实现了基本Snmp功能的封装
+	* `SnmpServerCreater.java`负责创建Snmp服务器
+
+* `Graph`文件夹
+	* `Graph.java`是拓扑图类
+	* `GraphCreator.java`是拓扑图的创建类
+	* 其他都是一些拓扑图需要用到的数据结构
+
+#### 4.3.2 后端代码基本架构
+
+<div align=center>
+![](/img/backend.jpg)
+</div>
+
+可以看到，后端代码其实可以分成三层：
+
+* 基本的snmp4J提供的api
+* 封装snmp4j的api后实现的四个基本api，包括:
 	* `snmpget`方法，可以获取单个OID节点上的信息
 	* `snmpgetSubTree`方法，可以获取一个OID子树上的信息
 	* `snmpwalk`方法，可以获取尽可能多的（一个PDU最多可以承载的数据量）OID节点的信息
 	* `snmpset`方法，可以对有写权限的OID节点进行set操作
-* springboot实现把前端post命令转化为后端的相应的方法
-* 网络拓扑图发现算法
 
-### 2.3 拓扑图发现算法详述
+* 通过这四个基本api实现的各种各样的功能，因为上面已经列举了，这里不再赘述
 
-![](拓扑发现算法流程图.jpg)
+#### 4.3.3 四个基本api的详细说明
+
+|方法名|参数|返回值|说明|
+|:--|:--|:--|:--|
+|getTreeNode|节点OID|OID节点对应的data|可以获取任意可读的节点处的data|
+|getSubTree|OID， OID掩码长度|与该OID和掩码共同决定的同一OID范围内的所有data的值（不能超过一个PDU最多可以承载的量）|OID和IP地址类似，可以用这种方法获取指定范围内的data
+|getBulk|OID|获取从这个OID开始遍历，尽可能多的获取最多的data信息|获取的data由一个PDU最大数据量所限制|
+|SetStatus|OID， 想要设置的值|是否成功修改|仅能对开放写权限的节点进行修改|
+
+#### 4.3.4 网络拓扑发现算法逻辑细节
+
+网络拓扑发现算法实现用户在输入一个起始IP地址后，自动发现网络拓扑并保存相关的数据待前端获取。
+
+它的大致实现逻辑如下：
+
+<div align=center>
+![](/img/graph.jpg)
+</div> 
 
 目前的不足之处在于：
 * 拓扑发现算法仅仅只能用于有路由器的网络的拓扑结构的发现，对于无路由器，甚至交换机仅仅是二层交换机（没有自己的IP）的网络结构，因为Snmp必须要有IP地址的这个局限性，无法正确地生成相应的拓扑结构
