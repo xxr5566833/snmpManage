@@ -251,12 +251,6 @@ public class Controller {
         String readcommunity = (String)datamap.get("readcommunity");
         String writecommunity = (String)datamap.get("writecommunity");
         SnmpServer t = creater.getServer(ip, readcommunity,writecommunity);
-        int interfacenum = t.getVlanBegin();
-        if(interfacenum == -1){
-            // 说明没有vlan
-            interfacenum = t.getInterfaceNum();
-        }
-        InterFace[] interFaces = new InterFace[interfacenum];
         Vector<VariableBinding> ifdescrvbs = null;
         Vector<VariableBinding> ifindexvbs = null;
         Vector<VariableBinding> iftypevbs = null;
@@ -284,6 +278,17 @@ public class Controller {
         }catch(IOException e){
             e.printStackTrace();
         }
+        int interfacenum = ifdescrvbs.size();
+        for(int i = 0 ; i < ifdescrvbs.size() ; i++){
+            // 首先必须把vlan除掉
+            String descr = ifdescrvbs.elementAt(i).getVariable().toString();
+            if(descr.length() >= 4 && descr.substring(0, 4).equals("Vlan")){
+                interfacenum = i;
+                break;
+            }
+        }
+
+        InterFace[] interFaces = new InterFace[interfacenum];
         for(int i = 0 ; i < interfacenum ; i++){
             InterFace inter = new InterFace();
             inter.setIndex(ifindexvbs.elementAt(i).getVariable().toInt());
@@ -296,6 +301,8 @@ public class Controller {
             else{
                 inter.setIfDescr(descr);
             }
+            if(descr.length() >=4 && descr.substring(0, 4).equals("Vlan"))
+                break;
             // TODO: 这里应该用时间戳类而不是String
             inter.setIfLastChange(iflastchangevbs.elementAt(i).getVariable().toString());
             inter.setIfMtu(ifmtuvbs.elementAt(i).getVariable().toInt());
