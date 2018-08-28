@@ -68,7 +68,7 @@ public class Constant {
             ipNetToMediaIfIndex = {1, 3, 6, 1, 2, 1, 4, 22, 1, 1},
             ipNetToMediaPhy = {1, 3, 6, 1, 2, 1, 4, 22, 1, 2},
             ipNetToMediaType = {1, 3, 6, 1, 2, 1, 4, 22, 1, 4},
-    // Vlan信息 私有MIB库
+    // Vlan信息 私有MIB库 可能没有
             vlanPorts = {1, 3, 6, 1, 4, 1, 25506, 8, 35, 2, 1, 1, 1, 3};
 
 

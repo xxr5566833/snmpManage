@@ -213,13 +213,14 @@ public class Controller {
             ifinboundvbs = t.getSubTree(inboundoid, leftlength);
             OID outboundoid = new OID(Constant.IfOutBound).append(vlanbeginindex);
             ifoutboundvbs = t.getSubTree(outboundoid, leftlength);
+            System.out.println("ports");
             ports = t.getSubTree(Constant.vlanPorts);
         }catch(IOException e){
             e.printStackTrace();
         }
         Vlan[] vlans = new Vlan[ifdescrvbs.size()];
         for(int i = 0 ; i < ifdescrvbs.size() ; i++){
-            Vlan inter = new Vlan(i + 1, ports.elementAt(i).getVariable().toString());
+            Vlan inter = new Vlan(i + 1, ports.size() == 0 ? "null" : ports.elementAt(i).getVariable().toString());
             inter.setIndex(ifindexvbs.elementAt(i).getVariable().toInt());
             inter.setIfAdminStatus(Status.values()[ifadminstatusvbs.elementAt(i).getVariable().toInt()]);
             // 对于ifdescr 需要特别区分是否以Octet的String形式给出

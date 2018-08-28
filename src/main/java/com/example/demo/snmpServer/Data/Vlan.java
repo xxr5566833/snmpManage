@@ -9,18 +9,24 @@ public class Vlan extends InterFace{
     public Vlan(int index, String s){
         this.index = index;
         ports = new Vector<>();
-        String[] strs = s.split(":");
-        for(int i = 0 ; i < strs.length ; i++){
-            int result = toInt(strs[i]);
-            int j = 8;
-            while(j-- > 0){
-                if((result & 1) == 1){
-                    ports.add(i * 8 + 8 - j);
+        if(s.equals("null"))
+        {
+            return ;
+        }else{
+            String[] strs = s.split(":");
+            for(int i = 0 ; i < strs.length ; i++){
+                int result = toInt(strs[i]);
+                int j = 8;
+                while(j-- > 0){
+                    if((result & 1) == 1){
+                        ports.add(i * 8 + 8 - j);
+                    }
+                    result >>= 1;
                 }
-                result >>= 1;
             }
+            this.port = this.portToString();
         }
-        this.port = this.portToString();
+
     }
 
     public Vector<Integer> getPorts(){
