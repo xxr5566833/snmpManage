@@ -407,6 +407,17 @@ public class SnmpServer{
         }
         return ips;
     }
+    // 判断是不是自己的ip
+    public boolean isMyself(String ip){
+        Vector<IP> ips = this.getOwnIp();
+        for(int i = 0 ; i < ips.size() ; i++){
+            if(ips.get(i).getIpAddress().equals(ip)){
+                return true;
+            }
+        }
+        return ip.equals("127.0.0.1");
+    }
+
     public Vector<IP> getTCPconnection(){
         Vector<VariableBinding> ipaddrs = null;
         try {
@@ -423,40 +434,45 @@ public class SnmpServer{
         return ips;
     }
     public DeviceType getDeviceType(){
-        if(this.device.getType() == DeviceType.none){
             //首先判断ipForwarding
+        if(this.device.getType() == DeviceType.none) {
             VariableBinding ipforwarding = null;
             try {
                 ipforwarding = this.getTreeNode(Constant.IpForwarding);
-            }catch(IOException e){
+            } catch (IOException e) {
                 e.printStackTrace();
             }
-            if(ipforwarding.getVariable().getSyntax() == 128 || ipforwarding.getVariable().toInt() != 1){
+            if (ipforwarding.getVariable().getSyntax() == 128 || ipforwarding.getVariable().toInt() != 1) {
                 this.device.setType(DeviceType.host);
-            }
-            else{
+            } else {
                 // 交换机和路由器
-                VariableBinding v = null;
-                try{
-                    v = this.getTreeNode(Constant.OnlyRouterOid);
-                }catch(IOException e){
-                    e.printStackTrace();
+                // 通过端口的名字判断
+                boolean flag = false;
+                Vector<VariableBinding> ifdescs = this.getInterfaceName();
+                for (int i = 0; i < ifdescs.size(); i++) {
+                    String name = ifdescs.get(i).getVariable().toString();
+                    if (name.length() > 5 && name.substring(0, 6).equals("Serial")) {
+
+                        flag = true;
+                        break;
+                    }
                 }
-                // 128是NoSuchObject的对应syntax的编号
-                if(v.getSyntax() == 128)
-                {
-                    this.device.setType(DeviceType.exchange);
-                }
-                else {
-                    // 路由器或者是三层交换机
-                    this.device.setType( DeviceType.router);
-                }
+                this.device.setType(flag ? DeviceType.router : DeviceType.exchange);
             }
         }
-
         return this.device.getType();
-    }
 
+    }
+    public Vector<VariableBinding> getInterfaceName(){
+        Vector<VariableBinding> ifdescrvbs = null;
+        try {
+            ifdescrvbs = this.getSubTree(Constant.IfDescr);
+        }catch(Exception e)
+        {
+            e.printStackTrace();
+        }
+        return ifdescrvbs;
+    }
     public IPRoute[] getIpRoute(){
         Vector<VariableBinding> destvbs = null;
         Vector<VariableBinding> ifindexvbs = null;

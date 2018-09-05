@@ -27,8 +27,32 @@ public class GraphCreator {
                     SnmpServer server = SnmpServerCreater.getServer(ips[i].getIpRouteNextHop());
                     if(server.isValid()) {
                         ip = ips[i].getIpRouteNextHop();
-                        n = new Node(ip, NodeType.gateway, 0);
-                        break;
+                        // 这时这个ip是它的默认网关地址，但是这个默认网关还不一定是路由器，还可能是交换机
+                        if(server.getDeviceType() == DeviceType.router){
+                            n = new Node(ip, NodeType.gateway, 0);
+                            break;
+                        }
+                        else{
+                            // 说明是一个交换机，那么此时需要找到它相连的路由器
+                            IPRoute[] exchips = server.getIpRoute();
+                            boolean flag = false;
+                            for(int j = 0 ; j < exchips.length ; j++){
+                                // 寻找下一跳中是路由器的
+                                IPRoute exchip = exchips[j];
+                                if(!server.isMyself(exchip.getIpRouteNextHop())){
+                                    SnmpServer gateserver = SnmpServerCreater.getServer(exchip.getIpRouteNextHop());
+                                    if(gateserver.isValid()){
+                                        // 找到了那个路由器
+                                        n = new Node(exchip.getIpRouteNextHop(), NodeType.gateway, 0);
+                                        flag = true;
+                                        break;
+                                    }
+                                }
+                            }
+                            if(flag)
+                                break;
+                        }
+
                     }
                 }
             }
@@ -102,105 +126,175 @@ public class GraphCreator {
 
         Vector<Node> exchanges = new Vector<>();
         Vector<Node> hosts = new Vector<>();
-
-        // 这里可以通过地址转换表进行简化
-        SnmpServer server = SnmpServerCreater.getServer(n.getMainIp());
-        String[] possibleip = server.getLinkedIp();
-                // 开始解析这个子网的结构
-                // 获得了ip和子网掩码，那么此时就可以获得这个子网的地址范围，接下来遍历这个子网的每一个ip，确保不会与与它相连的路由器ip地址重复
-                for(int i = 0 ; i < possibleip.length ; i ++){
-                    IPv4 ipv4 = new IPv4(possibleip[i], netmask);
-                    if(graph.isRepeated(ipv4.getIP()) || !IPv4.isSameSubnet(ip, possibleip[i], netmask)) {
-                        continue;
-                    }
-                    // 获取这个ip所对应的设备的信息
-                    SnmpServer t = new SnmpServer(ipv4.getIP());
-
-                    if (t.isValid()) {
-
-                        DeviceType type = t.getDeviceType();
-                        if (type == DeviceType.host) {
-                            Node hostn = new Node(ipv4.getIP(), NodeType.host);
-                            Vector<IP> ips = new Vector<>();
-                            ips.add(new IP(hostn.getMainIp(), netmask));
-                            graph.setIps(hostn, ips);
-                            hosts.add(hostn);
-                        } else {
-                            Node exhangen = new Node(ipv4.getIP(), NodeType.exchange);
-                            exchanges.add(exhangen);
-                            Vector<IP> ips = t.getOwnIp();
-                            graph.setIps(exhangen, ips);
-
-                        }
+        // 首先检查是否在图中已经有这个网段的ip
+        boolean flag = false;
+        Vector<Node> nodes = graph.getNodes();
+        for(int i = 0 ; i < nodes.size() ; i++){
+            String nodeip = nodes.get(i).getMainIp();
+            SnmpServer server = SnmpServerCreater.getServer(nodeip);
+            if(nodes.get(i).getType() == NodeType.exchange){
+                for(int j = 0 ; j < nodes.get(i).getIps().size() ; j++){
+                    if(IPv4.isSameSubnet(ip, nodes.get(i).getIps().get(j).getIpAddress(), netmask))
+                    {
+                        flag = true;
+                        break;
                     }
                 }
+                if(flag)
+                    break;
+            }
+        }
+        if(!flag){
+            // 这里可以通过地址转换表进行简化
+            SnmpServer server = SnmpServerCreater.getServer(n.getMainIp());
+            String[] possibleip = server.getLinkedIp();
+            // 开始解析这个子网的结构
+            // 获得了ip和子网掩码，那么此时就可以获得这个子网的地址范围，接下来遍历这个子网的每一个ip，确保不会与与它相连的路由器ip地址重复
+             for(int i = 0 ; i < possibleip.length ; i ++){
+                IPv4 ipv4 = new IPv4(possibleip[i], netmask);
+                if(graph.isRepeated(ipv4.getIP())) {
+                    continue;
+                }
+                // 获取这个ip所对应的设备的信息
+                SnmpServer t = new SnmpServer(ipv4.getIP());
 
-        for(int i = 0 ; i < hosts.size() ; i++){
-             Node hostn = hosts.elementAt(i);
-             // 遍历交换机找到管理它的交换机
-            for(int j = 0 ; j < exchanges.size() ; j++){
-                Node exchangen = exchanges.elementAt(j);
-                if(exchangen.isSameSubnet(hostn.getMainIp())){
-                    // 接下来还需要检查是不是当前交换机比之前主机已经连接的交换机的范围更小
-                    Vector<Edge> edges = hostn.getEdges();
-                    if(edges.size() > 0){
-                        Edge e = edges.elementAt(0);
-                        Node last = e.getDest();
-                        if(IP.compare(last.getIps().elementAt(0).getIpNetMask(), exchangen.getIps().elementAt(0).getIpNetMask()) == 1){
-                            hostn.deleteEdge(last);
-                            last.deleteEdge(hostn);
-                            hostn.addEdge(exchangen);
+                if (t.isValid()) {
+
+                    DeviceType type = t.getDeviceType();
+                    if (type == DeviceType.host) {
+                        Node hostn = new Node(ipv4.getIP(), NodeType.host);
+                        Vector<IP> ips = new Vector<>();
+                        ips.add(new IP(hostn.getMainIp(), netmask));
+                        graph.setIps(hostn, ips);
+                        hosts.add(hostn);
+                    } else {
+                        Node exhangen = new Node(ipv4.getIP(), NodeType.exchange);
+                        exchanges.add(exhangen);
+                        Vector<IP> ips = t.getOwnIp();
+                        graph.setIps(exhangen, ips);
+                        // 这里需要得到这个交换机管理的设备
+                        SnmpServer excserver = SnmpServerCreater.getServer(exhangen.getMainIp());
+                        String[] possiblePC = excserver.getLinkedIp();
+                        for(int j = 0 ; j < possiblePC.length ; j++){
+                            String pcip = possiblePC[j];
+                            SnmpServer pcserver = SnmpServerCreater.getServer(pcip);
+                            if(pcserver.isValid() && pcserver.getDeviceType() == DeviceType.host){
+                                // 检查是否在一个子网范围内
+                                boolean sameflag = false;
+                                for(int k = 0 ; k < exhangen.getIps().size() ; k++){
+                                    if(IPv4.isSameSubnet(exhangen.getIps().get(k).getIpAddress(), pcip, netmask)){
+                                        sameflag = true;
+                                        break;
+                                    }
+                                }
+                                if(!sameflag)
+                                    continue;
+                                Node hostn = new Node(pcip, NodeType.host);
+                                Vector<IP> pcownips = new Vector<>();
+                                pcownips.add(new IP(hostn.getMainIp(), netmask));
+                                graph.setIps(hostn, pcownips);
+                                hosts.add(hostn);
+                                // 这里建立它和这个交换机的关系
+                                hostn.addEdge(exhangen);
+                                exhangen.addEdge(hostn);
+                            }
                         }
-                    }
-                    else{
-                        hostn.addEdge(exchangen);
-                        exchangen.addEdge(hostn);
                     }
                 }
             }
-        }
-        for(int i  = 0 ; i < exchanges.size() ; i++){
-                    //遍历交换机找到管理它的交换机和它管理的交换机
-            Node exchange1 = exchanges.elementAt(i);
-            for(int j = 0 ; j < exchanges.size() ; j++){
-                if(j != i){
-                    Node exchange2 = exchanges.elementAt(j);
-                    if(exchange2.isSameSubnet(exchange1.getMainIp())){
-                        // 接下来是管理和被管理的关系
-                        Vector<Edge> edges = exchange1.getEdges();
-                        for(int k = 0 ; k < edges.size() ; k++){
-                            Node tmp = edges.elementAt(k).getDest();
-                            if(tmp.getType() == NodeType.exchange){
-                                // 如果是交换机又在同一个网段里，根据范围更新
-                                if(IP.compare(tmp.getIps().elementAt(0).getIpNetMask(), exchange2.getIps().elementAt(0).getIpNetMask()) == 1){
-                                    exchange1.deleteEdge(tmp);
-                                    tmp.deleteEdge(exchange1);
+
+            for(int i = 0 ; i < hosts.size() ; i++){
+                Node hostn = hosts.elementAt(i);
+                if(hostn.getEdges().size() > 0){
+                    // 表示在上面找过了
+                    continue;
+                }
+                // 遍历交换机找到管理它的交换机
+                for(int j = 0 ; j < exchanges.size() ; j++){
+                    Node exchangen = exchanges.elementAt(j);
+                    if(exchangen.isSameSubnet(hostn.getMainIp())){
+                        // 接下来还需要检查是不是当前交换机比之前主机已经连接的交换机的范围更小
+                        Vector<Edge> edges = hostn.getEdges();
+                        if(edges.size() > 0){
+                            Edge e = edges.elementAt(0);
+                            Node last = e.getDest();
+                            if(IP.compare(last.getIps().elementAt(0).getIpNetMask(), exchangen.getIps().elementAt(0).getIpNetMask()) == 1){
+                                hostn.deleteEdge(last);
+                                last.deleteEdge(hostn);
+                                hostn.addEdge(exchangen);
+                            }
+                        }
+                        else{
+                            hostn.addEdge(exchangen);
+                            exchangen.addEdge(hostn);
+                        }
+                    }
+                }
+            }
+            for(int i  = 0 ; i < exchanges.size() ; i++){
+                //遍历交换机找到管理它的交换机和它管理的交换机
+                Node exchange1 = exchanges.elementAt(i);
+                for(int j = 0 ; j < exchanges.size() ; j++){
+                    if(j != i){
+                        Node exchange2 = exchanges.elementAt(j);
+                        if(exchange2.isSameSubnet(exchange1.getMainIp())){
+                            // 接下来是管理和被管理的关系
+                            Vector<Edge> edges = exchange1.getEdges();
+                            for(int k = 0 ; k < edges.size() ; k++){
+                                Node tmp = edges.elementAt(k).getDest();
+                                if(tmp.getType() == NodeType.exchange){
+                                    // 如果是交换机又在同一个网段里，根据范围更新
+                                    if(IP.compare(tmp.getIps().elementAt(0).getIpNetMask(), exchange2.getIps().elementAt(0).getIpNetMask()) == 1){
+                                        exchange1.deleteEdge(tmp);
+                                        tmp.deleteEdge(exchange1);
+                                    }
                                 }
                             }
                         }
                     }
                 }
             }
-        }
-        if(exchanges.size() == 0 && hosts.size() != 0){
-            // 如果发现不了交换机，说明交换机没有IP地址只是一个二层交换机而路由器是无法直接连到交换机上的，所以这里需要fake一个交换机
-            return false;
-        }
+            if(exchanges.size() == 0 && hosts.size() != 0){
+                // 如果发现不了交换机，说明交换机没有IP地址只是一个二层交换机而路由器是无法直接连到交换机上的，所以这里需要fake一个交换机
+                return false;
+            }
 
-        // 设备和交换机的连接信息都已经设置完毕，接下来就是添加到graph中
-        for(int i = 0 ; i < hosts.size() ; i++){
-                    Node host = hosts.elementAt(i);
-                    host.setIndex(graph.getNodeNum());
-                    graph.addNode(host);
+            // 设备和交换机的连接信息都已经设置完毕，接下来就是添加到graph中
+            for(int i = 0 ; i < hosts.size() ; i++){
+                Node host = hosts.elementAt(i);
+                host.setIndex(graph.getNodeNum());
+                graph.addNode(host);
+            }
+            for(int i = 0 ; i < exchanges.size() ; i++){
+                Node exchange = exchanges.elementAt(i);
+                exchange.setIndex(graph.getNodeNum());
+                graph.addNode(exchange);
+                // 因为这些ip都是通过路由器的地址转换表得到的，一定是相连的
+                graph.addEdge(n.getIndex(), exchange.getIndex());
+            }
+            return true;
+
         }
-        for(int i = 0 ; i < exchanges.size() ; i++){
-                    Node exchange = exchanges.elementAt(i);
-                    exchange.setIndex(graph.getNodeNum());
-                    graph.addNode(exchange);
-            // 因为这些ip都是通过路由器的地址转换表得到的，一定是相连的
-            graph.addEdge(n.getIndex(), exchange.getIndex());
+        else{
+            // 直接建立节点间的连接关系
+
+            for(int i = 0 ; i < nodes.size() ; i++){
+                String nodeip = nodes.get(i).getMainIp();
+                SnmpServer server = SnmpServerCreater.getServer(nodeip);
+                if(server.getDeviceType() == DeviceType.exchange){
+                    // 判断是否与ip是同一个子网
+                    Vector<IP> ips = nodes.get(i).getIps();
+                    for(int j = 0 ; j < ips.size() ; j++){
+                        if(IPv4.isSameSubnet(ip, ips.get(j).getIpAddress(), netmask)){
+                            // 这个节点与n可以建立连接关系
+                            graph.addEdge(n.getIndex(), nodes.get(i).getIndex());
+                            break;
+                        }
+                    }
+                }
+            }
+            return true;
         }
-        return true;
 
     }
 
@@ -245,7 +339,6 @@ public class GraphCreator {
             // 非网关不需要继续深度遍历
             return ;
         SnmpServer t = SnmpServerCreater.getServer(n.getMainIp());
-        DeviceType type = t.getDeviceType();
         // 对于同一个路由器来说，不要重复查询多个相同子网
         Vector<String> subnetips = new Vector<>();
         // 首先是自己的ip信息
@@ -274,9 +367,13 @@ public class GraphCreator {
                         if (ipr.getIpRouteMask().equals("255.255.255.255")) {
                             // 说明可能有直连路由器，那么此时需要检验dest的合法性
                             if (!IP.isAllOne(ipr.getIpRouteDest(), ipr.getIpRouteMask())) {
-                                Node newn = new Node(ipr.getIpRouteDest(), NodeType.gateway, graph.getNodeNum());
-                                graph.addNode(newn);
-                                graph.addEdge(n.getIndex(), newn.getIndex());
+                                SnmpServer temp = SnmpServerCreater.getServer(ipr.getIpRouteDest());
+                                if(temp.isValid()){
+                                    Node newn = new Node(ipr.getIpRouteDest(), NodeType.gateway, graph.getNodeNum());
+                                    graph.addNode(newn);
+                                    graph.addEdge(n.getIndex(), newn.getIndex());
+                                }
+
                             }
                         } else {
                             // 说明是子网，因为子网号不可能为全1
@@ -291,9 +388,13 @@ public class GraphCreator {
                 String nexthop = ipr.getIpRouteNextHop();
                 if (!graph.isRepeated(nexthop)) {
                     // IP地址不重复，那么相当于发现新设备
-                    Node newn = new Node(nexthop, NodeType.gateway,  graph.getNodeNum());
-                    graph.addNode(newn);
-                    graph.addEdge(n.getIndex(), newn.getIndex());
+                    SnmpServer temp = SnmpServerCreater.getServer(ipr.getIpRouteDest());
+                    if(temp.isValid()) {
+                        Node newn = new Node(nexthop, NodeType.gateway,  graph.getNodeNum());
+                        graph.addNode(newn);
+                        graph.addEdge(n.getIndex(), newn.getIndex());
+                    }
+
                 }
             }
         }

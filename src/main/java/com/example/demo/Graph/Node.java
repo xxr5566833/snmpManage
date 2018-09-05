@@ -56,6 +56,10 @@ public class Node {
     // 增加到n的连接边
     public void addEdge(Node n){
         Edge e = new Edge(n);
+        for(int i = 0 ; i < this.edges.size() ; i++){
+            if(this.edges.get(i).getDestIndex() == n.getIndex())
+                return ;
+        }
         this.edges.add(e);
     }
 
