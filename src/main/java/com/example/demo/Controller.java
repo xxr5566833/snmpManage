@@ -213,13 +213,19 @@ public class Controller {
             ifinboundvbs = t.getSubTree(inboundoid, leftlength);
             OID outboundoid = new OID(Constant.IfOutBound).append(vlanbeginindex);
             ifoutboundvbs = t.getSubTree(outboundoid, leftlength);
-            System.out.println("ports");
             ports = t.getSubTree(Constant.vlanPorts);
         }catch(IOException e){
             e.printStackTrace();
         }
-        Vlan[] vlans = new Vlan[ifdescrvbs.size()];
+        int vlansize = 0;
         for(int i = 0 ; i < ifdescrvbs.size() ; i++){
+            if(!ifdescrvbs.elementAt(i).getVariable().toString().substring(0, 4).equals("Vlan")){
+                break;
+            }
+            vlansize++;
+        }
+        Vlan[] vlans = new Vlan[vlansize];
+        for(int i = 0 ; i < vlansize ; i++){
             Vlan inter = new Vlan(i + 1, ports.size() == 0 ? "null" : ports.elementAt(i).getVariable().toString());
             inter.setIndex(ifindexvbs.elementAt(i).getVariable().toInt());
             inter.setIfAdminStatus(Status.values()[ifadminstatusvbs.elementAt(i).getVariable().toInt()]);
