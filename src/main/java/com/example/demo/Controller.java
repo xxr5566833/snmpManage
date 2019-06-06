@@ -419,6 +419,13 @@ public class Controller {
         }
         return map;
     }
-
-
+    @RequestMapping("/login")
+    public int login(@RequestBody Map datamap){
+        if(datamap.get("phoneNumber").equals("13121270825")){
+            if(datamap.get("password").equals("abcd"))
+                return 2;
+            else return 1;
+        }
+        else return 0;
+    }
 }
